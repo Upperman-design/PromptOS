@@ -1,0 +1,2057 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptOS — 设计师的 AI 工作台</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg:#F5F5F7;--surface:#FFFFFF;--surface-alt:#F0F0F2;
+--border:rgba(0,0,0,0.08);--border-light:rgba(0,0,0,0.04);
+--text:#1D1D1F;--text-2:#86868B;--text-3:#AEAEB2;
+--accent:#007AFF;--accent-2:#5AC8FA;--accent-bg:rgba(0,122,255,0.06);--accent-border:rgba(0,122,255,0.2);
+--violet:#AF52DE;--rose:#FF3B30;--emerald:#34C759;--amber:#FF9500;--sky:#5AC8FA;
+--radius:10px;--radius-lg:14px;--radius-xl:20px;
+--shadow-xs:0 0.5px 1px rgba(0,0,0,0.03);
+--shadow-sm:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.03);
+--shadow-md:0 4px 14px rgba(0,0,0,0.06),0 1px 3px rgba(0,0,0,0.04);
+--shadow-lg:0 10px 40px rgba(0,0,0,0.08),0 2px 10px rgba(0,0,0,0.04);
+--sidebar:240px;--topbar:52px;
+--font:-apple-system,"SF Pro Display","SF Pro Text","Helvetica Neue","PingFang SC",system-ui,sans-serif;
+}
+html,body,#root{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-0.01em}
+input,textarea,button,select{font-family:inherit;font-size:inherit}
+button{cursor:pointer;border:none;background:none}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);border-radius:10px}::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.18)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideRight{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes scaleUp{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes typewriter{from{width:0}to{width:100%}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.04);opacity:.7}}
+@keyframes dotBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+@keyframes progress{from{width:0}to{width:100%}}
+@keyframes tagPop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,122,255,.12)}50%{box-shadow:0 0 0 8px rgba(0,122,255,0)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+.anim-up{animation:fadeUp .3s cubic-bezier(.25,.1,.25,1) both}
+.anim-fade{animation:fadeIn .2s ease both}
+.anim-slide{animation:slideRight .3s cubic-bezier(.25,.1,.25,1) both}
+.anim-scale{animation:scaleUp .18s cubic-bezier(.25,.1,.25,1) both}
+.anim-tag{animation:tagPop .2s cubic-bezier(.25,.1,.25,1) both}
+
+.glass{background:rgba(255,255,255,.72);backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8)}
+.btn-primary{background:var(--accent);color:#fff;border-radius:8px;padding:7px 16px;font-weight:600;font-size:13px;transition:all .2s cubic-bezier(.25,.1,.25,1);letter-spacing:-0.01em}
+.btn-primary:hover{background:#0066D6;box-shadow:0 2px 8px rgba(0,122,255,.25)}
+.btn-primary:active{transform:scale(.98)}
+.btn-ghost{border-radius:8px;padding:7px 14px;font-weight:500;font-size:13px;color:var(--text-2);transition:all .2s cubic-bezier(.25,.1,.25,1);border:1px solid var(--border)}
+.btn-ghost:hover{background:rgba(0,0,0,.02);border-color:rgba(0,0,0,.14);color:var(--text)}
+.btn-ghost:active{background:rgba(0,0,0,.04)}
+.card{background:var(--surface);border-radius:var(--radius-lg);border:0.5px solid rgba(0,0,0,0.08);box-shadow:var(--shadow-sm);transition:all .25s cubic-bezier(.25,.1,.25,1)}
+.card:hover{box-shadow:var(--shadow-md);border-color:rgba(0,0,0,0.12)}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:0}
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useRef,useEffect,useCallback,useMemo,Fragment}=React;
+
+/* ─── SVG Icons (stroke-based, rounded) ─── */
+const I=({d,size=20,color="currentColor",sw=1.8,children,filled})=><svg width={size} height={size} viewBox="0 0 24 24" fill={filled?"currentColor":"none"} stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">{children||<path d={d}/>}</svg>;
+const IHome=p=><I {...p}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></I>;
+const IWand=p=><I {...p}><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8l1.4 1.4M12.2 11.8l-1.4 1.4M17.8 6.2l1.4-1.4M12.2 6.2l-1.4-1.4"/><path d="M9 18l6-6"/></I>;
+const IGrid=p=><I {...p}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></I>;
+const IBlocks=p=><I {...p}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></I>;
+const ISearch=p=><I {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></I>;
+const IUpload=p=><I {...p}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></I>;
+const IPlus=p=><I {...p}><path d="M12 5v14M5 12h14"/></I>;
+const IX=p=><I {...p}><path d="M18 6L6 18M6 6l12 12"/></I>;
+const ICopy=p=><I {...p}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></I>;
+const ICheck=p=><I {...p}><path d="M20 6L9 17l-5-5"/></I>;
+const ISparkle=p=><I {...p}><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/><path d="M19 15l.75 2.25L22 18l-2.25.75L19 21l-.75-2.25L16 18l2.25-.75L19 15z"/></I>;
+const IEdit=p=><I {...p}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></I>;
+const IHeart=p=><I {...p}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></I>;
+const IEye=p=><I {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></I>;
+const ITrash=p=><I {...p}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></I>;
+const IChevron=p=><I {...p}><path d="M9 18l6-6-6-6"/></I>;
+const IDown=p=><I {...p}><path d="M6 9l6 6 6-6"/></I>;
+const ITarget=p=><I {...p}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></I>;
+const ISun=p=><I {...p}><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></I>;
+const ICamera=p=><I {...p}><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></I>;
+const IPalette=p=><I {...p}><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></I>;
+const IZap=p=><I {...p}><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></I>;
+const IImage=p=><I {...p}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></I>;
+const IFolder=p=><I {...p}><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></I>;
+const IArrow=p=><I {...p}><path d="M5 12h14M12 5l7 7-7 7"/></I>;
+const IRefresh=p=><I {...p}><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></I>;
+const ISliders=p=><I {...p}><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></I>;
+const IBookmark=p=><I {...p}><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></I>;
+const ILayers=p=><I {...p}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></I>;
+const IGrip=p=><I {...p}><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></I>;
+const IMoreV=p=><I {...p}><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></I>;
+
+/* ─── Placeholder images (gradient-based) ─── */
+const GRADS=[
+['#667eea','#764ba2'],['#f093fb','#f5576c'],['#4facfe','#00f2fe'],['#43e97b','#38f9d7'],
+['#fa709a','#fee140'],['#a18cd1','#fbc2eb'],['#fccb90','#d57eeb'],['#e0c3fc','#8ec5fc'],
+['#ff9a9e','#fad0c4'],['#a1c4fd','#c2e9fb'],['#d4fc79','#96e6a1'],['#84fab0','#8fd3f4'],
+['#6a11cb','#2575fc'],['#ff6a88','#ff99ac'],['#fbc2eb','#a6c1ee']
+];
+const phImg=(seed,w=400,h=300)=>{const c=GRADS[seed%GRADS.length];return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${c[0]}"/><stop offset="100%" stop-color="${c[1]}"/></linearGradient></defs><rect fill="url(#g)" width="${w}" height="${h}"/></svg>`)}`;};
+
+/* ─── Mock Data ─── */
+const PLATFORMS=[
+{id:'jimeng',name:'即梦 Dreamina',color:'#FF5733',bg:'#FFF0ED'},
+{id:'chatgpt',name:'ChatGPT',color:'#10A37F',bg:'#ECFDF5'},
+{id:'mj',name:'Midjourney',color:'#5865F2',bg:'#EEF0FF'},
+{id:'sd',name:'Stable Diffusion',color:'#8B5CF6',bg:'#F3EEFF'},
+{id:'tongyi',name:'通义万相',color:'#FF6A00',bg:'#FFF7ED'},
+];
+
+const MOCK_ITEMS=[
+  {id:1,title:'赛博朋克城市夜景',prompt:'一座未来赛博朋克城市夜景，霓虹灯光倒映在湿润的鹅卵石街道上，高耸入云的摩天大楼挂着全息广告牌，远处有飞行器消失在低矮的云层中，电影级光影效果，体积光雾气弥漫，超精细画面，8K超高清分辨率，宽银幕16:9画幅比例',neg:'模糊、低画质、水印、文字',platform:'jimeng',params:{画幅:'16:9',画质:'超高清',风格:'写实'},tags:['赛博朋克','概念艺术','电影感','城市'],rating:5,uses:12,note:'即梦平台直接输入中文即可，效果非常接近描述。适合概念设计项目背景图，体积雾和霓虹灯光的组合层次感极佳。',date:'2026-07-10',folder:'概念设计',seed:0,
+    analysis:{subject:'未来城市',character:'无',env:'雨夜街道',style:'赛博朋克',color:'蓝紫色调',comp:'中心构图',lens:'低角度仰拍',light:'霓虹灯光反射',models:['即梦 Dreamina','ChatGPT'],suggestedParams:['16:9宽幅','超高清画质','写实风格']}},
+  {id:2,title:'极简产品摄影·白底',prompt:'一张极简风格的产品摄影图，纯白色背景，柔和的漫射灯光，产品底部有淡淡的自然投影，干净利落的现代构图，商业广告级品质，高级质感，画面简洁大方',neg:'杂乱背景、花哨配色、业余感',platform:'chatgpt',params:{画幅:'1:1',画质:'高清',风格:'商业摄影'},tags:['极简','产品设计','商业摄影'],rating:4,uses:28,note:'ChatGPT图片生成对中文产品描述理解很好。替换主体描述词即可复用，白底效果比纯白更有质感，适合电商场景。',date:'2026-07-09',folder:'产品摄影',seed:1,
+    analysis:{subject:'产品主体',character:'—',env:'白色影棚',style:'商业摄影',color:'纯白/中性灰',comp:'居中对称',lens:'标准50mm镜头',light:'柔和漫射光',models:['ChatGPT','即梦 Dreamina'],suggestedParams:['1:1方图','高清画质','商业摄影风格']}},
+  {id:3,title:'水彩花园插画',prompt:'一幅精致的水彩插画，描绘一座迷人的英式花园，柔和的笔触色彩相互晕染，玫瑰花瓣上挂着晨露，远处有一座童话般的小木屋，植物图鉴风格，绘本质感，温馨治愈的氛围',neg:'数码感、锐利边缘、荧光色、写实照片',platform:'jimeng',params:{画幅:'3:4',画质:'高清',风格:'水彩插画'},tags:['水彩','插画','复古','植物'],rating:4,uses:6,note:'即梦的水彩风格选项效果很好。描述中强调"晕染"和"绘本质感"是关键。',date:'2026-07-08',folder:'插画素材',seed:2,
+    analysis:{subject:'英式花园',character:'—',env:'花园与小屋',style:'水彩插画',color:'柔和粉彩色调',comp:'层次递进',lens:'—',light:'晨光柔和',models:['即梦 Dreamina','ChatGPT'],suggestedParams:['3:4竖幅','水彩风格','绘本质感']}},
+  {id:4,title:'3D等距小房间',prompt:'一个3D等距视角的小房间，温馨的日式书房，暖色调木质家具，书架上摆满了书，台灯投射出一圈温暖的光，微缩模型风格，移轴摄影效果，游戏资产品质，精细的家具细节',neg:'写实照片、暗色调、恐怖元素',platform:'chatgpt',params:{画幅:'1:1',画质:'高清',风格:'3D渲染'},tags:['3D渲染','建筑','极简','游戏'],rating:5,uses:15,note:'ChatGPT对等距视角的理解很好。"微缩模型风格"和"移轴效果"是关键描述词。适合做UI插图和游戏资产。',date:'2026-07-07',folder:'UI素材',seed:3,
+    analysis:{subject:'日式书房',character:'—',env:'室内空间',style:'3D等距',color:'暖木色调',comp:'等距45°视角',lens:'—',light:'台灯暖光源',models:['ChatGPT','即梦 Dreamina'],suggestedParams:['1:1方图','3D渲染风格','精细细节']}},
+  {id:5,title:'复古胶片人像',prompt:'一张复古胶片风格的人像摄影，模拟35mm柯达Portra 400胶卷质感，黄金时刻的光线透过窗帘洒在一位穿白色亚麻裙的年轻女性身上，可见的胶片颗粒感，模拟胶片的温暖色调，高光处略微过曝，时尚杂志编辑风格',neg:'数码感、锐利、HDR效果、现代感',platform:'jimeng',params:{画幅:'3:4',画质:'高清',风格:'胶片摄影'},tags:['复古','摄影','人像','胶片'],rating:5,uses:9,note:'即梦的"胶片"风格选项配合Portra 400关键词效果很好。强调"过曝高光"和"胶片颗粒"是关键。',date:'2026-07-06',folder:'摄影参考',seed:5,
+    analysis:{subject:'年轻女性',character:'穿亚麻裙的女性',env:'窗边自然光',style:'胶片摄影',color:'暖黄色调/胶片色彩',comp:'三分法构图',lens:'35mm胶片镜头',light:'黄金时刻自然光',models:['即梦 Dreamina','通义万相'],suggestedParams:['3:4竖幅','胶片风格','高清画质']}},
+  {id:6,title:'流体渐变抽象背景',prompt:'一幅抽象流体渐变作品，液态大理石纹理带着虹彩光泽，全息色彩在紫色和青色之间流动变幻，光滑流畅的有机形态，4K壁纸级品质，当代数字艺术风格，梦幻而高级',neg:'文字、标志、锐利边缘、几何图案',platform:'tongyi',params:{画幅:'16:9',画质:'超高清',风格:'艺术绘画'},tags:['抽象','极简','UI设计','背景'],rating:4,uses:20,note:'通义万相对抽象风格理解不错。流体效果描述要强调"有机形态"和"虹彩光泽"。适合做设计项目的背景素材。',date:'2026-07-05',folder:'UI素材',seed:6,
+    analysis:{subject:'—',character:'—',env:'—',style:'抽象流体艺术',color:'全息渐变色',comp:'自由流动',lens:'—',light:'内发光效果',models:['通义万相','即梦 Dreamina'],suggestedParams:['16:9宽幅','艺术风格','超高清']}},
+  {id:7,title:'建筑可视化·海岸别墅',prompt:'一座现代奢华别墅建在海岸悬崖上，建筑可视化效果图，落地玻璃幕墙，清水混凝土搭配温暖木质元素，无边际泳池与海平面融为一体，戏剧性的日落光线，照片级真实渲染品质，V-Ray渲染质感',neg:'卡通、素描、不真实、玩具感',platform:'chatgpt',params:{画幅:'16:9',画质:'超高清',风格:'写实渲染'},tags:['建筑','写实','3D渲染','景观'],rating:5,uses:7,note:'ChatGPT对建筑描述的理解非常精准。"照片级真实渲染"比"超写实"效果更自然。',date:'2026-07-04',folder:'建筑可视化',seed:7,
+    analysis:{subject:'现代别墅',character:'—',env:'海岸悬崖',style:'建筑可视化',color:'暖橙与冷蓝对比',comp:'黄金分割',lens:'广角镜头',light:'日落侧光',models:['ChatGPT','即梦 Dreamina'],suggestedParams:['16:9宽幅','写实渲染','超高清']}},
+  {id:8,title:'中国水墨山水',prompt:'一幅传统中国水墨山水画，远山在薄雾中层层隐去，岩石峭壁上古松遒劲，蜿蜒的河流上一叶小舟，极简构图留出大面积空白，泼墨写意笔法，可见宣纸纹理质感，意境深远悠长',neg:'彩色、现代、数码感、写实照片',platform:'jimeng',params:{画幅:'3:4',画质:'高清',风格:'水墨画'},tags:['风景','水墨','国风','复古'],rating:4,uses:11,note:'即梦的"水墨"风格模式效果出色。描述中强调"留白"和"宣纸纹理"是营造意境的关键。',date:'2026-07-03',folder:'国风素材',seed:8,
+    analysis:{subject:'山水景观',character:'小舟渔人',env:'雾山松树河流',style:'水墨画',color:'墨色与留白',comp:'留白构图',lens:'—',light:'自然散射光',models:['即梦 Dreamina','通义万相'],suggestedParams:['3:4竖幅','水墨风格','高清画质']}},
+  {id:9,title:'奇幻森林概念设计',prompt:'一片奇幻森林的概念设计图，巨大的远古树木树皮散发着生物荧光，空中漂浮着光粒子，暗处隐藏着神秘的魔法生物，浓密的树冠间投射出体积光光束，史诗级奇幻氛围，数字绘景级品质，画面充满魔幻与神秘感',neg:'城市、现代、科技、整洁干净',platform:'chatgpt',params:{画幅:'21:9',画质:'超高清',风格:'概念艺术'},tags:['概念艺术','风景','奇幻','游戏'],rating:5,uses:5,note:'ChatGPT对奇幻场景描述的还原度很高。"生物荧光"和"体积光光束"是营造氛围的核心词。超宽画幅适合游戏场景。',date:'2026-07-02',folder:'概念设计',seed:11,
+    analysis:{subject:'奇幻森林',character:'隐藏的魔法生物',env:'远古树林深处',style:'概念艺术',color:'翠绿与金色光芒',comp:'纵深透视',lens:'广角镜头',light:'丁达尔体积光',models:['ChatGPT','即梦 Dreamina'],suggestedParams:['21:9超宽幅','概念艺术风格','超高清']}},
+  {id:10,title:'微距巧克力摄影',prompt:'一张微距美食摄影，手工黑巧克力松露特写，可可粉颗粒在戏剧性的空中定格飘散，暗调侧面打光，纯黑色背景，100mm微距镜头，商业食品广告级品质，充满高级感和食欲',neg:'明亮、平面光、业余感、塑料质感',platform:'jimeng',params:{画幅:'4:5',画质:'高清',风格:'美食摄影'},tags:['摄影','写实','产品设计','美食'],rating:3,uses:3,note:'即梦对美食摄影的"暗调侧光"效果不错。描述"颗粒飘散定格"需要多试几次才能得到满意结果。',date:'2026-07-01',folder:'产品摄影',seed:9,
+    analysis:{subject:'巧克力松露',character:'—',env:'暗色背景',style:'美食摄影',color:'深色与暖棕色',comp:'中心特写',lens:'100mm微距镜头',light:'侧面硬光',models:['即梦 Dreamina','ChatGPT'],suggestedParams:['4:5竖幅','美食摄影风格','高清画质']}},
+  {id:11,title:'UI组件系统展示',prompt:'一套干净的UI组件库展示图，悬浮的卡片上排列着现代感的按钮和表单元素，柔和的多层投影，统一和谐的设计系统配色，浅暖灰色背景，Dribbble风格的展示排版，Figma设计工具级品质',neg:'暗色模式、杂乱、凌乱',platform:'tongyi',params:{画幅:'16:9',画质:'高清',风格:'产品设计'},tags:['UI设计','极简','产品设计','组件'],rating:4,uses:16,note:'通义万相对UI展示类图片理解不错。替换组件描述可以生成不同的组件展示图，适合设计系统文档配图。',date:'2026-06-30',folder:'UI素材',seed:10,
+    analysis:{subject:'UI组件',character:'—',env:'中性灰背景',style:'产品设计展示',color:'浅灰搭配品牌色',comp:'网格排列',lens:'—',light:'均匀柔光',models:['通义万相','ChatGPT'],suggestedParams:['16:9宽幅','产品设计风格','高清画质']}},
+  {id:12,title:'动漫角色设计表',prompt:'一张动漫角色设计参考图，包含多个动态姿势，全身正面和背面视图，面部表情特写，鲜艳的赛璐璐上色风格，吉卜力工作室结合现代动漫美学，干净自信的线稿，白色背景，角色设定集品质',neg:'变形、多余肢体、写实、照片感',platform:'jimeng',params:{画幅:'3:2',画质:'高清',风格:'动漫插画'},tags:['动漫','概念艺术','角色','插画'],rating:3,uses:4,note:'即梦的"动漫"风格选项适合这个方向。角色设计表需要多次迭代，建议先单独生成各姿势再组合。',date:'2026-06-29',folder:'角色设计',seed:4,
+    analysis:{subject:'动漫角色',character:'原创角色',env:'白色背景',style:'日系动漫',color:'鲜艳赛璐璐配色',comp:'多视角排列',lens:'—',light:'均匀无影光',models:['即梦 Dreamina','通义万相'],suggestedParams:['3:2横幅','动漫风格','高清画质']}},
+];
+
+const FOLDERS=[
+  {name:'概念设计',icon:'💡',count:2},
+  {name:'产品摄影',icon:'📷',count:2},
+  {name:'UI素材',icon:'🎨',count:3},
+  {name:'插画素材',icon:'✏️',count:1},
+  {name:'角色设计',icon:'👤',count:1},
+  {name:'摄影参考',icon:'📸',count:1},
+  {name:'建筑可视化',icon:'🏛️',count:1},
+  {name:'国风素材',icon:'🏮',count:1},
+];
+
+/* ─── Prompt Building Blocks (for Editor page) ─── */
+const BLOCKS={
+  subject:[
+    {id:'s1',text:'一辆银色的保时捷 911 GT3 RS',emoji:'🏎️'},
+    {id:'s2',text:'一位穿白色亚麻裙的年轻女性',emoji:'👩'},
+    {id:'s3',text:'一座赛博朋克风格的未来城市',emoji:'🌆'},
+    {id:'s4',text:'一杯冒着热气的手冲咖啡',emoji:'☕'},
+    {id:'s5',text:'一只橘色的猫趴在窗台上',emoji:'🐱'},
+  ],
+  env:[
+    {id:'e1',text:'在雨夜的霓虹灯街道上',emoji:'🌧️'},
+    {id:'e2',text:'纯白色极简影棚背景',emoji:'⬜'},
+    {id:'e3',text:'日本京都的竹林小径中',emoji:'🎋'},
+    {id:'e4',text:'海岸悬崖上的日落时分',emoji:'🌅'},
+    {id:'e5',text:'充满绿植的现代咖啡厅',emoji:'🌿'},
+  ],
+  style:[
+    {id:'st1',text:'赛博朋克风格，霓虹灯光',emoji:'💜'},
+    {id:'st2',text:'商业产品摄影，干净利落',emoji:'📦'},
+    {id:'st3',text:'水彩插画，柔和笔触',emoji:'🎨'},
+    {id:'st4',text:'复古胶片感，暖色调胶片颗粒质感',emoji:'🎞️'},
+    {id:'st5',text:'3D渲染，高精度光线追踪品质',emoji:'🧊'},
+  ],
+  lens:[
+    {id:'l1',text:'低角度广角镜头，戏剧性透视',emoji:'📐'},
+    {id:'l2',text:'50mm标准镜头，自然视角',emoji:'🔲'},
+    {id:'l3',text:'100mm微距镜头，极致细节',emoji:'🔍'},
+    {id:'l4',text:'航拍俯瞰，鸟瞰视角',emoji:'🛸'},
+    {id:'l5',text:'浅景深，奶油般柔美的虚化',emoji:'💫'},
+  ],
+  params:[
+    {id:'p1',text:'16:9宽银幕画幅，超高清画质，写实风格',emoji:'🎬'},
+    {id:'p2',text:'1:1方形画幅，高清画质，商业摄影风格',emoji:'🔳'},
+    {id:'p3',text:'3:4竖版构图，高清画质，插画风格',emoji:'📐'},
+    {id:'p4',text:'3:2横幅画幅，高清画质，动漫插画风格',emoji:'🎌'},
+    {id:'p5',text:'4:5竖版构图，高清画质，精致特写',emoji:'✨'},
+  ]
+};
+
+/* ─── AI API Configuration & Helpers ─── */
+const API_PRESETS=[
+  {id:'qwen37',name:'通义千问 3.7-Max 多模态（推荐）',endpoint:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen3.7-max-2026-06-08',hint:'在 dashscope.console.aliyun.com 获取 API Key'},
+  {id:'qwen',name:'通义千问 VL（经典视觉模型）',endpoint:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-vl-max',hint:'同上百炼平台 API Key，稳定可靠'},
+  {id:'moonshot',name:'Moonshot Kimi 视觉',endpoint:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-32k-vision',hint:'在 platform.moonshot.cn 获取 API Key'},
+  {id:'zhipu',name:'智谱 GLM-4V',endpoint:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4v',hint:'在 open.bigmodel.cn 获取 API Key'},
+  {id:'openai',name:'OpenAI GPT-4o',endpoint:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',hint:'需要 OpenAI API Key'},
+  {id:'custom',name:'自定义',endpoint:'',model:'',hint:'填写你自己的 OpenAI 兼容 API 地址'},
+];
+
+const ANALYSIS_SYSTEM_PROMPT=`你是一个专业的 AI 图片生成 Prompt 工程师。请仔细分析用户上传的图片，从三个维度进行结构化分析，并生成可以直接用于中文 AI 图片生成平台（即梦 Dreamina、ChatGPT 图片生成、通义万相）的高质量中文 Prompt。
+
+请严格按照以下 JSON 格式返回分析结果，不要包含任何其他文字说明、markdown 标记或代码块标记，只输出纯 JSON：
+{
+  "analysis": {
+    "subject": "画面主体（具体描述画面中心对象）",
+    "character": "人物描述（无人物则填"—"）",
+    "env": "环境场景描述",
+    "style": "视觉艺术风格",
+    "color": "色彩特征和色调",
+    "comp": "构图方式",
+    "lens": "推测的摄影镜头或视角（非摄影类填"—"）",
+    "light": "光影效果特征",
+    "models": ["推荐AI平台1", "推荐AI平台2"],
+    "suggestedParams": ["建议画幅参数", "建议画质参数", "建议风格参数"]
+  },
+  "prompt": "完整的中文正向提示词（80-150字，自然流畅的描述，包含主体、环境、风格、光影、构图、画质等要素，适合即梦和ChatGPT直接使用）",
+  "negPrompt": "中文负向提示词（列出应该避免的元素，用顿号分隔）",
+  "tags": ["标签1", "标签2", "标签3", "标签4", "标签5"]
+}
+
+分析要求：
+1. prompt 字段必须是完整的自然语言中文描述，不要包含英文单词或技术参数符号
+2. tags 必须是 4-5 个精准的中文分类标签，适合用于作品管理和搜索
+3. models 从"即梦 Dreamina"、"ChatGPT"、"通义万相"中选择最合适的 1-2 个
+4. suggestedParams 包含画幅（如16:9宽幅）、画质（如超高清）、风格三个建议`;
+
+const getApiConfig=()=>{
+  try{const s=localStorage.getItem('promptos_api');return s?JSON.parse(s):null}catch{return null}
+};
+const saveApiConfig=(cfg)=>{
+  try{localStorage.setItem('promptos_api',JSON.stringify(cfg))}catch(e){console.warn('无法保存设置',e)}
+};
+
+const getUserItems=()=>{
+  try{const s=localStorage.getItem('promptos_items');return s?JSON.parse(s):[];}catch{return []}
+};
+const saveUserItems=(items)=>{
+  try{localStorage.setItem('promptos_items',JSON.stringify(items))}catch(e){console.warn('数据太大无法保存，建议导出数据后清理',e)}
+};
+
+const createThumbnail=(base64Data)=>{
+  return new Promise((resolve)=>{
+    const img=new Image();
+    img.onload=()=>{const c=document.createElement('canvas');const maxW=480;const scale=maxW/img.width;const h=Math.round(img.height*scale);c.width=maxW;c.height=h;const ctx=c.getContext('2d');ctx.drawImage(img,0,0,maxW,h);resolve(c.toDataURL('image/jpeg',0.6))};
+    img.onerror=()=>resolve(null);
+    img.src=base64Data;
+  });
+};
+
+const analyzeImage=async(base64Data,apiConfig,signal)=>{
+  const {endpoint,model,apiKey}=apiConfig;
+  if(!endpoint||!model||!apiKey)throw new Error('请先在设置中配置 API 地址和 Key');
+
+  const body={
+    model,
+    messages:[
+      {role:'system',content:ANALYSIS_SYSTEM_PROMPT},
+      {role:'user',content:[
+        {type:'image_url',image_url:{url:base64Data}},
+        {type:'text',text:'请仔细分析这张图片，严格按照要求的 JSON 格式返回三层分析结果和生成的中文 Prompt。只输出 JSON，不要包含任何其他文字。'}
+      ]}
+    ],
+    temperature:0.3,
+    max_tokens:2000,
+  };
+
+  const res=await fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
+    body:JSON.stringify(body),
+    signal,
+  });
+
+  if(!res.ok){
+    const errText=await res.text().catch(()=>'');
+    if(res.status===401)throw new Error('API Key 无效或已过期，请检查设置');
+    if(res.status===403)throw new Error('API 访问被拒绝，请检查 Key 权限');
+    if(res.status===404)throw new Error('API 地址或模型名称错误，请在设置中检查');
+    if(res.status===429)throw new Error('请求过于频繁，请稍后再试');
+    if(res.status===400){
+      const isInvalidParam=errText.includes('InvalidParameter')||errText.includes('invalid');
+      if(isInvalidParam)throw new Error(`当前模型不支持图片分析。请在「AI 设置」中切换为视觉模型（推荐「通义千问 3.7-Max 多模态」或「通义千问 VL」）。详细错误：${errText.slice(0,80)}`);
+      throw new Error(`请求参数错误${errText?': '+errText.slice(0,100):''}`);
+    }
+    throw new Error(`API 请求失败 (${res.status})${errText?': '+errText.slice(0,100):''}`);
+  }
+
+  const data=await res.json();
+  const content=data.choices?.[0]?.message?.content;
+  if(!content)throw new Error('AI 返回了空结果');
+
+  // Parse JSON from response (handle potential markdown code blocks)
+  let parsed;
+  try{
+    parsed=JSON.parse(content);
+  }catch{
+    const m=content.match(/\{[\s\S]*\}/);
+    if(m){try{parsed=JSON.parse(m[0])}catch{throw new Error('AI 返回格式异常，请重试')}}
+    else throw new Error('无法解析 AI 返回结果');
+  }
+  if(!parsed.analysis||!parsed.prompt)throw new Error('AI 分析结果不完整，请重试');
+  return parsed;
+};
+
+/* ─── AI Prompt Optimization ─── */
+const optimizePromptWithAI=async(rawPrompt,apiConfig)=>{
+  const {endpoint,model,apiKey}=apiConfig;
+  if(!endpoint||!model||!apiKey)throw new Error('请先在设置中配置 API 地址和 Key');
+
+  const systemPrompt=`你是一位专业的 AI 绘画 Prompt 工程师，擅长将简单描述优化为高质量的中文 AI 绘画提示词。
+
+你的任务：
+1. 将用户提供的关键词/短语组合优化为一段流畅、专业、细节丰富的中文 Prompt
+2. 补充合理的画面细节、质感描述、氛围词汇来提升生成效果
+3. 保持原始意图不变，不要改变主体、风格等核心内容
+4. 适当加入画质增强词（如：高精度、细节丰富、专业摄影等）
+5. 优化后的 Prompt 应该适合直接用于即梦 Dreamina、通义万相、ChatGPT 等 AI 绘画工具
+6. 同时生成一段简短的负向提示词（英文逗号分隔），帮助避免常见的生成问题
+
+严格按照以下 JSON 格式返回：
+{
+  "optimized": "优化后的完整中文 Prompt（一段自然流畅的描述，不是关键词堆砌）",
+  "negative": "负向提示词（英文逗号分隔）",
+  "tips": "一句简短的使用建议"
+}
+只返回 JSON，不要包含任何其他文字。`;
+
+  const body={
+    model,
+    messages:[
+      {role:'system',content:systemPrompt},
+      {role:'user',content:`请优化以下 AI 绘画 Prompt：\n\n${rawPrompt}`}
+    ],
+    temperature:0.6,
+    max_tokens:1500,
+  };
+
+  const res=await fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
+    body:JSON.stringify(body),
+  });
+
+  if(!res.ok){
+    const errText=await res.text().catch(()=>'');
+    if(res.status===401)throw new Error('API Key 无效或已过期，请检查设置');
+    if(res.status===429)throw new Error('请求过于频繁，请稍后再试');
+    throw new Error(`API 请求失败 (${res.status})${errText?': '+errText.slice(0,100):''}`);
+  }
+
+  const data=await res.json();
+  const content=data.choices?.[0]?.message?.content;
+  if(!content)throw new Error('AI 返回了空结果');
+
+  let parsed;
+  try{
+    parsed=JSON.parse(content);
+  }catch{
+    const m=content.match(/\{[\s\S]*\}/);
+    if(m){try{parsed=JSON.parse(m[0])}catch{throw new Error('AI 返回格式异常')}}
+    else throw new Error('无法解析 AI 返回结果');
+  }
+  if(!parsed.optimized)throw new Error('AI 优化结果不完整，请重试');
+  return parsed;
+};
+
+/* ─── Sidebar Component ─── */
+const Sidebar=({page,setPage,folders,folderFilter,onFolderClick,trashCount,itemCount,onCreateFolder,onEditFolder,onDeleteFolder})=>{
+  const [hoveredFolder,setHoveredFolder]=useState(null);
+
+  const NavItem=({id,icon,label,badge})=>(
+    <button key={id} onClick={()=>{setPage(id);onFolderClick(null)}}
+      style={{width:'100%',display:'flex',alignItems:'center',gap:8,padding:'6px 10px',borderRadius:7,marginBottom:1,
+        background:page===id?'rgba(0,0,0,.05)':'transparent',
+        color:page===id?'var(--text)':'var(--text-2)',
+        fontWeight:page===id?600:400,fontSize:13,transition:'all .15s ease',letterSpacing:'-.01em'}}
+      onMouseEnter={e=>{if(page!==id)e.currentTarget.style.background='rgba(0,0,0,.03)'}}
+      onMouseLeave={e=>{if(page!==id)e.currentTarget.style.background='transparent'}}>
+      {icon}<span style={{flex:1,textAlign:'left'}}>{label}</span>
+      {badge!=null&&<span style={{fontSize:11,color:'var(--text-3)',fontWeight:400,minWidth:20,textAlign:'right'}}>{badge}</span>}
+    </button>
+  );
+
+  return(
+    <aside style={{width:'var(--sidebar)',height:'100%',background:'var(--surface)',borderRight:'0.5px solid rgba(0,0,0,0.08)',display:'flex',flexDirection:'column',flexShrink:0}}>
+      {/* Logo */}
+      <div style={{padding:'18px 16px 14px',display:'flex',alignItems:'center',gap:10}}>
+        <div style={{width:30,height:30,borderRadius:8,background:'linear-gradient(180deg,#007AFF,#0055D4)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(0,122,255,.25)'}}>
+          <ISparkle size={15} color="#fff" sw={2.2}/>
+        </div>
+        <div>
+          <div style={{fontWeight:700,fontSize:14.5,letterSpacing:'-.3px',color:'var(--text)'}}>PromptOS</div>
+          <div style={{fontSize:9.5,color:'var(--text-3)',letterSpacing:'.3px',fontWeight:500}}>AI Creative Workspace</div>
+        </div>
+      </div>
+
+      <nav style={{padding:'2px 10px',flex:1,overflowY:'auto'}}>
+        {/* WORKSPACE */}
+        <div style={{marginBottom:4,padding:'0 8px'}}>
+          <span style={{fontSize:10,fontWeight:700,color:'var(--text-3)',letterSpacing:'.8px',textTransform:'uppercase'}}>Workspace</span>
+        </div>
+        <NavItem id="dashboard" icon={<IHome size={16}/>} label={'\u5de5\u4f5c\u53f0'}/>
+        <NavItem id="library" icon={<IGrid size={16}/>} label="Prompt" badge={itemCount}/>
+        <NavItem id="editor" icon={<IBlocks size={16}/>} label={'\u7f16\u8f91\u5668'}/>
+
+        {/* COLLECTIONS */}
+        <div style={{margin:'18px 0 4px',padding:'0 8px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <span style={{fontSize:10,fontWeight:700,color:'var(--text-3)',letterSpacing:'.8px',textTransform:'uppercase'}}>Collections</span>
+          <button onClick={onCreateFolder} style={{color:'var(--text-3)',padding:2,borderRadius:4,display:'flex',alignItems:'center',transition:'all .15s'}} title={'\u65b0\u5efa\u6536\u85cf\u5939'}
+            onMouseEnter={e=>{e.currentTarget.style.color='var(--accent)';e.currentTarget.style.background='var(--accent-bg)'}}
+            onMouseLeave={e=>{e.currentTarget.style.color='var(--text-3)';e.currentTarget.style.background='transparent'}}>
+            <IPlus size={12}/>
+          </button>
+        </div>
+        {folders.map(f=>{
+          const isActive=folderFilter===f.name;
+          const isHovered=hoveredFolder===f.name;
+          return(
+          <div key={f.name} style={{position:'relative'}}
+            onMouseEnter={()=>setHoveredFolder(f.name)} onMouseLeave={()=>setHoveredFolder(null)}>
+            <button onClick={()=>{onFolderClick(isActive?null:f.name);setPage('library')}}
+              style={{width:'100%',display:'flex',alignItems:'center',gap:8,padding:'5px 10px',borderRadius:7,marginBottom:1,
+                background:isActive?'rgba(0,122,255,.08)':'transparent',color:isActive?'var(--accent)':'var(--text-2)',
+                fontSize:13,fontWeight:isActive?600:400,transition:'all .15s ease',letterSpacing:'-.01em'}}
+              onMouseEnter={e=>{if(!isActive)e.currentTarget.style.background='rgba(0,0,0,.03)'}}
+              onMouseLeave={e=>{if(!isActive)e.currentTarget.style.background=isActive?'rgba(0,122,255,.08)':'transparent'}}>
+              <span style={{fontSize:13,width:18,textAlign:'center'}}>{f.icon}</span>
+              <span style={{flex:1,textAlign:'left'}}>{f.name}</span>
+              {isHovered?(
+                <span style={{display:'flex',gap:2}}>
+                  <span onClick={e=>{e.stopPropagation();onEditFolder(f)}} style={{cursor:'pointer',padding:2,borderRadius:4,color:'var(--text-3)'}} title={'\u7f16\u8f91'}
+                    onMouseEnter={e=>e.currentTarget.style.color='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.color='var(--text-3)'}>
+                    <IEdit size={11}/>
+                  </span>
+                  <span onClick={e=>{e.stopPropagation();if(confirm('\u5220\u9664\u6536\u85cf\u5939\u300c'+f.name+'\u300d\uff1f\u5176\u4e2d\u7684 Prompt \u5c06\u79fb\u81f3\u201c\u672a\u5206\u7c7b\u201d\u3002'))onDeleteFolder(f.name)}}
+                    style={{cursor:'pointer',padding:2,borderRadius:4,color:'var(--text-3)'}} title={'\u5220\u9664'}
+                    onMouseEnter={e=>e.currentTarget.style.color='var(--rose)'} onMouseLeave={e=>e.currentTarget.style.color='var(--text-3)'}>
+                    <ITrash size={11}/>
+                  </span>
+                </span>
+              ):(
+                <span style={{fontSize:11,color:'var(--text-3)',fontWeight:400,minWidth:18,textAlign:'right'}}>{f.count}</span>
+              )}
+            </button>
+          </div>
+          );
+        })}
+
+        {/* ASSETS */}
+        <div style={{margin:'18px 0 4px',padding:'0 8px'}}>
+          <span style={{fontSize:10,fontWeight:700,color:'var(--text-3)',letterSpacing:'.8px',textTransform:'uppercase'}}>Assets</span>
+        </div>
+        <NavItem id="recycle" icon={<ITrash size={16}/>} label={'\u56de\u6536\u7ad9'} badge={trashCount||null}/>
+      </nav>
+
+      <div style={{padding:'12px 14px',borderTop:'0.5px solid rgba(0,0,0,0.08)',display:'flex',alignItems:'center',gap:10}}>
+        <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,#5AC8FA,#007AFF)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <span style={{fontSize:11,fontWeight:700,color:'#fff'}}>D</span>
+        </div>
+        <div style={{flex:1}}>
+          <div style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>Designer</div>
+          <div style={{fontSize:10,color:'var(--text-3)'}}>{'\u672c\u5730\u7248'}</div>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+/* ─── TopBar ─── */
+const TopBar=({q,setQ,onUpload,page,setPage,onOpenSettings,items,setViewingItem})=>{
+  const [showCmdK,setShowCmdK]=useState(false);
+  const inputRef=useRef(null);
+
+  useEffect(()=>{
+    const handler=(e)=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();setShowCmdK(true)}};
+    window.addEventListener('keydown',handler);
+    return ()=>window.removeEventListener('keydown',handler);
+  },[]);
+
+  useEffect(()=>{if(showCmdK&&inputRef.current)inputRef.current.focus()},[showCmdK]);
+
+  const cmdkResults=useMemo(()=>{
+    if(!q.trim())return [];
+    const lq=q.toLowerCase();
+    return [
+      ...items.filter(i=>i.title.toLowerCase().includes(lq)||i.prompt.toLowerCase().includes(lq)||i.tags.some(t=>t.toLowerCase().includes(lq))).slice(0,5).map(i=>({type:'item',data:i})),
+    ];
+  },[q,items]);
+
+  return(
+    <Fragment>
+      <div style={{height:'var(--topbar)',background:'var(--surface)',borderBottom:'0.5px solid rgba(0,0,0,0.08)',display:'flex',alignItems:'center',padding:'0 20px',gap:10,flexShrink:0}}>
+        <button onClick={()=>setShowCmdK(true)} style={{flex:1,maxWidth:420,display:'flex',alignItems:'center',gap:8,padding:'7px 12px',borderRadius:8,background:'var(--bg)',border:'1px solid transparent',cursor:'pointer',transition:'all .2s ease'}}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,0,0,.08)'}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor='transparent'}}>
+          <ISearch size={14} color="var(--text-3)"/>
+          <span style={{flex:1,textAlign:'left',fontSize:13,color:'var(--text-3)'}}>{'\u641c\u7d22 Prompt\u3001\u6807\u7b7e\u3001\u7b14\u8bb0...'}</span>
+          <span style={{fontSize:10,fontWeight:600,color:'var(--text-3)',padding:'2px 6px',borderRadius:4,background:'rgba(0,0,0,.04)',letterSpacing:'.02em'}}>Ctrl+K</span>
+        </button>
+        <div style={{flex:1}}/>
+        <button onClick={onOpenSettings} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 10px',borderRadius:8,fontSize:13,color:'var(--text-2)',fontWeight:500,transition:'all .15s ease',letterSpacing:'-.01em'}}
+          onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,0,0,.03)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}} title="AI \u6a21\u578b\u8bbe\u7f6e">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+
+      {/* Command palette overlay */}
+      {showCmdK&&(
+        <div className="anim-fade" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.3)',backdropFilter:'blur(8px)',zIndex:500,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:120}}
+          onClick={()=>{setShowCmdK(false);setQ('')}}>
+          <div className="anim-scale" onClick={e=>e.stopPropagation()} style={{width:520,background:'var(--surface)',borderRadius:14,boxShadow:'0 20px 60px rgba(0,0,0,.15),0 0 0 0.5px rgba(0,0,0,.08)',overflow:'hidden'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,padding:'14px 18px',borderBottom:'0.5px solid rgba(0,0,0,0.06)'}}>
+              <ISearch size={16} color="var(--text-3)"/>
+              <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} placeholder={'\u641c\u7d22 Prompt\u3001\u6807\u7b7e\u3001\u7b14\u8bb0...'}
+                style={{flex:1,border:'none',outline:'none',fontSize:15,fontWeight:500,background:'transparent',color:'var(--text)',letterSpacing:'-.01em'}}/>
+              <span style={{fontSize:10,fontWeight:600,color:'var(--text-3)',padding:'2px 6px',borderRadius:4,background:'rgba(0,0,0,.04)'}}>ESC</span>
+            </div>
+            {cmdkResults.length>0&&(
+              <div style={{padding:6,maxHeight:320,overflowY:'auto'}}>
+                {cmdkResults.map(({data:it})=>{
+                  const pl=PLATFORMS.find(p=>p.id===it.platform);
+                  return(
+                    <button key={it.id} onClick={()=>{setViewingItem(it);setPage('library');setShowCmdK(false);setQ('')}}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'8px 12px',borderRadius:8,cursor:'pointer',textAlign:'left',transition:'all .1s ease',background:'transparent',border:'none'}}
+                      onMouseEnter={e=>e.currentTarget.style.background='var(--bg)'}
+                      onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <img src={it.thumbnail||phImg(it.seed,40,40)} alt="" style={{width:36,height:36,borderRadius:6,objectFit:'cover',flexShrink:0}}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{it.title}</div>
+                        <div style={{fontSize:11,color:'var(--text-3)',marginTop:1}}>{pl?.name} {'\u00b7'} {it.date.slice(5)}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {q.trim()&&cmdkResults.length===0&&(
+              <div style={{padding:24,textAlign:'center',color:'var(--text-3)',fontSize:13}}>{'\u6ca1\u6709\u627e\u5230\u5339\u914d\u7ed3\u679c'}</div>
+            )}
+            {!q.trim()&&(
+              <div style={{padding:16,textAlign:'center',color:'var(--text-3)',fontSize:12}}>{'\u8f93\u5165\u5173\u952e\u8bcd\u5f00\u59cb\u641c\u7d22'}</div>
+            )}
+          </div>
+        </div>
+      )}
+    </Fragment>
+  );
+};
+
+/* ─── Uploading / AI Analysis Overlay ─── */
+
+const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
+  const [phase,setPhase]=useState(0); // 0=upload, 1=analyzing, 2=result, -1=error
+  const [selectedImg,setSelectedImg]=useState(null);
+  const [progress,setProgress]=useState(0);
+  const [progressText,setProgressText]=useState('准备分析...');
+  const [tagsShown,setTagsShown]=useState([]);
+  const [promptRevealed,setPromptRevealed]=useState(false);
+  const [aiResult,setAiResult]=useState(null);
+  const [errorMsg,setErrorMsg]=useState('');
+  const [copied,setCopied]=useState(false);
+  const fileRef=useRef(null);
+  const abortRef=useRef(null);
+  const hasApi=apiConfig&&apiConfig.apiKey&&apiConfig.endpoint;
+
+  const cancelAnalysis=()=>{
+    if(abortRef.current){abortRef.current.abort();abortRef.current=null}
+    setPhase(0);setProgress(0);setProgressText('\u51c6\u5907\u5206\u6790...');
+  };
+
+  // progress animation during real API call
+  useEffect(()=>{
+    if(phase===1){
+      let p=0;
+      const stages=[{at:15,t:'上传图片到 AI 模型...'},{at:30,t:'分析画面内容和主体...'},{at:50,t:'识别视觉风格和色彩...'},{at:70,t:'推算构图和镜头参数...'},{at:85,t:'生成中文 Prompt...'}];
+      const iv=setInterval(()=>{p+=Math.random()*3+1;if(p>92)p=92;setProgress(Math.min(p,92));const s=stages.filter(x=>p>=x.at).pop();if(s)setProgressText(s.t)},300);
+      return ()=>clearInterval(iv);
+    }
+  },[phase]);
+
+  // animate tags after result
+  useEffect(()=>{
+    if(phase===2&&aiResult){
+      const allTags=aiResult.tags||[];let i=0;setTagsShown([]);setPromptRevealed(false);setProgress(100);
+      const iv=setInterval(()=>{if(i>=allTags.length){clearInterval(iv);setTimeout(()=>setPromptRevealed(true),300);return}setTagsShown(prev=>[...prev,allTags[i]]);i++},200);
+      return ()=>clearInterval(iv);
+    }
+  },[phase,aiResult]);
+
+  // paste from clipboard support
+  useEffect(()=>{
+    const handlePaste=(e)=>{
+      const items=e.clipboardData?.items;
+      if(!items)return;
+      for(let i=0;i<items.length;i++){
+        if(items[i].type.startsWith('image/')){
+          e.preventDefault();
+          const file=items[i].getAsFile();
+          if(file){
+            const reader=new FileReader();
+            reader.onload=(ev)=>{
+              const data=ev.target.result;
+              setSelectedImg(data);
+              if(!hasApi){setErrorMsg('请先配置 AI API');setPhase(-1);return}
+              doAnalysis(data);
+            };
+            reader.readAsDataURL(file);
+          }
+          break;
+        }
+      }
+    };
+    document.addEventListener('paste',handlePaste);
+    return ()=>document.removeEventListener('paste',handlePaste);
+  },[hasApi]);
+
+  // drag and drop support
+  const [dragOver,setDragOver]=useState(false);
+  const handleDrop=(e)=>{
+    e.preventDefault();e.stopPropagation();setDragOver(false);
+    const file=e.dataTransfer?.files?.[0];
+    if(file&&file.type.startsWith('image/')){
+      const reader=new FileReader();
+      reader.onload=(ev)=>{const data=ev.target.result;setSelectedImg(data);if(!hasApi){setErrorMsg('请先配置 AI API');setPhase(-1);return}doAnalysis(data)};
+      reader.readAsDataURL(file);
+    }
+  };
+  const handleDragOver=(e)=>{e.preventDefault();e.stopPropagation();setDragOver(true)};
+  const handleDragLeave=(e)=>{e.preventDefault();e.stopPropagation();setDragOver(false)};
+
+  const doAnalysis=async(base64Data)=>{
+    setPhase(1);setProgress(0);setErrorMsg('');setAiResult(null);
+    const controller=new AbortController();
+    abortRef.current=controller;
+    try{const result=await analyzeImage(base64Data,apiConfig,controller.signal);if(!controller.signal.aborted){setAiResult(result);setPhase(2)}}
+    catch(err){if(err.name==='AbortError')return;setErrorMsg(err.message||'分析失败');setPhase(-1)}
+  };
+
+  const handleFile=(e)=>{
+    const file=e.target?.files?.[0];
+    if(file){const reader=new FileReader();reader.onload=(ev)=>{const data=ev.target.result;setSelectedImg(data);if(!hasApi){setErrorMsg('请先配置 AI API');setPhase(-1);return}doAnalysis(data)};reader.readAsDataURL(file)}
+  };
+  const retry=()=>{if(selectedImg&&hasApi)doAnalysis(selectedImg);else setPhase(0)};
+  const handleSaveResult=async()=>{
+    if(!aiResult)return;const a=aiResult.analysis;
+    const thumb=selectedImg?await createThumbnail(selectedImg):null;
+    const newItem={id:Date.now(),user:true,title:(a.subject||'未命名').slice(0,20),prompt:aiResult.prompt,neg:aiResult.negPrompt||'',platform:'jimeng',
+      params:{画幅:(a.suggestedParams&&a.suggestedParams[0])||'自动',画质:(a.suggestedParams&&a.suggestedParams[1])||'高清',风格:(a.suggestedParams&&a.suggestedParams[2])||'自动'},
+      tags:aiResult.tags||[],rating:4,uses:0,note:'AI 自动生成，可编辑',date:new Date().toISOString().slice(0,10),folder:'未分类',seed:Math.floor(Math.random()*15),analysis:a,thumbnail:thumb};
+    onSave(newItem);onClose();
+  };
+
+  const analysisLabels=aiResult?[
+    {cat:'内容层',items:[{l:'主体',v:aiResult.analysis.subject},{l:'人物',v:aiResult.analysis.character},{l:'环境',v:aiResult.analysis.env}]},
+    {cat:'视觉层',items:[{l:'风格',v:aiResult.analysis.style},{l:'色彩',v:aiResult.analysis.color},{l:'构图',v:aiResult.analysis.comp},{l:'镜头',v:aiResult.analysis.lens},{l:'光影',v:aiResult.analysis.light}]},
+    {cat:'技术层',items:[{l:'推荐模型',v:(aiResult.analysis.models||[]).join(' / ')},{l:'建议参数',v:(aiResult.analysis.suggestedParams||[]).join(', ')}]},
+  ]:[];
+
+  return(
+    <div className="anim-fade" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.3)',backdropFilter:'blur(16px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:200}}>
+      <div className="anim-scale" onClick={e=>e.stopPropagation()}
+        style={{width:phase===2?920:520,maxHeight:'90vh',background:'var(--surface)',borderRadius:16,boxShadow:'var(--shadow-lg)',display:'flex',flexDirection:phase===2?'row':'column',overflow:'hidden',transition:'width .35s cubic-bezier(.25,.1,.25,1)'}}>
+
+        {/* Phase 0: Upload */}
+        {phase===0 && (
+          <div style={{padding:32}}>
+            <div style={{textAlign:'center',marginBottom:24}}>
+              <div style={{width:48,height:48,borderRadius:12,background:'var(--accent-bg)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:12}}><IUpload size={22} color="var(--accent)" sw={1.8}/></div>
+              <h2 style={{fontSize:18,fontWeight:600,letterSpacing:'-.02em'}}>上传你的 AI 作品</h2>
+              <p style={{color:'var(--text-3)',fontSize:13,marginTop:4}}>AI 视觉模型将自动分析图片并反推中文 Prompt</p>
+            </div>
+            {!hasApi && (
+              <div style={{padding:'10px 14px',background:'rgba(255,149,0,.06)',border:'1px solid rgba(255,149,0,.15)',borderRadius:8,marginBottom:14,textAlign:'center'}}>
+                <p style={{fontSize:12,color:'#B25000',margin:0}}>尚未配置 AI API，请先 <button onClick={onOpenSettings} style={{color:'var(--accent)',fontWeight:600,textDecoration:'underline',background:'none',border:'none',cursor:'pointer',fontSize:12,padding:0}}>打开设置</button> 配置 API Key</p>
+              </div>
+            )}
+            <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFile}/>
+            <div onClick={()=>{if(hasApi)fileRef.current?.click();else onOpenSettings()}}
+              onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
+              style={{border:dragOver?'2px solid var(--accent)':'1.5px dashed rgba(0,0,0,.15)',borderRadius:12,padding:40,textAlign:'center',cursor:'pointer',transition:'all .2s ease',
+                background:dragOver?'var(--accent-bg)':'var(--bg)',opacity:hasApi?1:.5}}
+              onMouseEnter={e=>{if(hasApi&&!dragOver){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.background='var(--accent-bg)'}}}
+              onMouseLeave={e=>{if(!dragOver){e.currentTarget.style.borderColor='rgba(0,0,0,.15)';e.currentTarget.style.background='var(--bg)'}}}>
+              <IImage size={32} color="var(--text-3)"/>
+              <p style={{marginTop:8,fontSize:13.5,fontWeight:500}}>点击、拖拽或粘贴图片</p>
+              <p style={{fontSize:11,color:'var(--text-3)',marginTop:3}}>JPG, PNG, WebP · 最大 10MB</p>
+              <p style={{fontSize:11,color:'var(--accent)',marginTop:6,display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                支持 Ctrl+V 直接粘贴截图
+              </p>
+            </div>
+            <div style={{display:'flex',justifyContent:'flex-end',marginTop:16}}>
+              <button onClick={onClose} className="btn-ghost">取消</button>
+            </div>
+          </div>
+        )}
+
+        {/* Phase -1: Error */}
+        {phase===-1 && (
+          <div style={{padding:32}}>
+            <div style={{textAlign:'center',marginBottom:20}}>
+              {selectedImg && <img src={selectedImg} alt="" style={{width:140,height:100,objectFit:'cover',borderRadius:8,marginBottom:14,boxShadow:'var(--shadow-sm)',opacity:.6}}/>}
+              <div style={{width:44,height:44,borderRadius:12,background:'rgba(255,59,48,.08)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:10}}>
+                <IX size={20} color="var(--rose)"/>
+              </div>
+              <h2 style={{fontSize:16,fontWeight:600,color:'var(--rose)',letterSpacing:'-.02em'}}>分析失败</h2>
+              <p style={{color:'var(--text-2)',fontSize:13,marginTop:6,lineHeight:1.5}}>{errorMsg}</p>
+            </div>
+            <div style={{display:'flex',gap:8,justifyContent:'center'}}>
+              {errorMsg.includes('配置')||errorMsg.includes('Key')?(
+                <button onClick={onOpenSettings} className="btn-primary">打开 API 设置</button>
+              ):(
+                <button onClick={retry} className="btn-primary" style={{display:'flex',alignItems:'center',gap:6}}><IRefresh size={14} color="#fff"/> 重试</button>
+              )}
+              <button onClick={()=>setPhase(0)} className="btn-ghost">重新上传</button>
+              <button onClick={onClose} className="btn-ghost">取消</button>
+            </div>
+          </div>
+        )}
+
+        {/* Phase 1: Analyzing */}
+        {phase===1 && (
+          <div style={{padding:32}}>
+            <div style={{textAlign:'center',marginBottom:28}}>
+              {selectedImg && <img src={selectedImg} alt="" style={{width:180,height:130,objectFit:'cover',borderRadius:10,marginBottom:16,boxShadow:'var(--shadow-md)'}}/>}
+              <div style={{width:44,height:44,borderRadius:12,background:'var(--accent-bg)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:14,animation:'glowPulse 2s infinite'}}>
+                <ISparkle size={22} color="var(--accent)"/>
+              </div>
+              <h2 style={{fontSize:17,fontWeight:600,letterSpacing:'-.02em'}}>AI 正在解析你的作品...</h2>
+              <p style={{color:'var(--text-3)',fontSize:12,marginTop:4}}>{progressText}</p>
+            </div>
+            <div style={{width:'100%',height:4,background:'var(--surface-alt)',borderRadius:2,overflow:'hidden',marginBottom:10}}>
+              <div style={{width:`${progress}%`,height:'100%',background:'linear-gradient(90deg,var(--accent),#5856D6)',borderRadius:2,transition:'width .3s ease'}}/>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'var(--text-3)'}}>
+              <span>使用 {apiConfig?.model||'AI'} 视觉模型</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'center',marginTop:16}}>
+              <button onClick={cancelAnalysis} style={{padding:'6px 18px',borderRadius:8,fontSize:12,fontWeight:500,color:'var(--text-2)',background:'var(--bg)',border:'1px solid rgba(0,0,0,.08)',cursor:'pointer',display:'flex',alignItems:'center',gap:5,transition:'all .15s ease'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,0,0,.04)';e.currentTarget.style.borderColor='rgba(0,0,0,.15)'}}
+                onMouseLeave={e=>{e.currentTarget.style.background='var(--bg)';e.currentTarget.style.borderColor='rgba(0,0,0,.08)'}}>
+                <IX size={13}/> 取消分析
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Phase 2: Real AI Results */}
+        {phase===2 && aiResult && (
+          <Fragment>
+            {/* Left: Image + Tags */}
+            <div style={{width:360,flexShrink:0,padding:24,display:'flex',flexDirection:'column',borderRight:'0.5px solid rgba(0,0,0,0.06)',overflowY:'auto'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
+                <div style={{padding:'4px 10px',borderRadius:6,background:'#ECFDF5',color:'#10B981',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',gap:4}}>
+                  <ICheck size={13}/> AI 解析完成
+                </div>
+                <span style={{fontSize:10,color:'var(--text-3)',marginLeft:'auto'}}>{apiConfig?.model}</span>
+              </div>
+              <img src={selectedImg} alt="" style={{width:'100%',borderRadius:14,boxShadow:'var(--shadow-md)',marginBottom:16}}/>
+
+              {/* Auto Tags */}
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:8}}>AI 自动标签</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {tagsShown.map((t,i)=>(
+                    <span key={t} className="anim-tag" style={{animationDelay:`${i*0.05}s`,padding:'5px 12px',borderRadius:20,fontSize:11.5,fontWeight:600,
+                      background:['var(--accent-bg)','#FEF3C7','#ECFDF5','#FEE2E2'][i%4],
+                      color:['var(--accent)','#B45309','#059669','#DC2626'][i%4]}}>#{t}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{flex:1}}/>
+              <div style={{display:'flex',gap:8,flexShrink:0}}>
+                <button onClick={handleSaveResult} className="btn-primary" style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                  <IBookmark size={15} color="#fff"/> 保存到库
+                </button>
+                <button onClick={onClose} className="btn-ghost">关闭</button>
+              </div>
+            </div>
+
+            {/* Right: Analysis */}
+            <div style={{flex:1,overflowY:'auto',padding:28}}>
+              <h3 style={{fontSize:18,fontWeight:700,marginBottom:4}}>AI 视觉解析</h3>
+              <p style={{color:'var(--text-3)',fontSize:12,marginBottom:24}}>基于 {apiConfig?.model||'视觉模型'} 的多维度深度分析</p>
+
+              {/* Analysis Sections */}
+              {analysisLabels.map((sec,si)=>(
+                <div key={sec.cat} className="anim-up" style={{animationDelay:`${si*0.1}s`,marginBottom:24}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                    <div style={{width:8,height:8,borderRadius:2,background:['var(--accent)','var(--violet)','var(--emerald)'][si]}}/>
+                    <span style={{fontSize:13,fontWeight:700,color:['var(--accent)','var(--violet)','var(--emerald)'][si]}}>{sec.cat}</span>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:8}}>
+                    {sec.items.map(it=>(
+                      <div key={it.l} style={{padding:'10px 14px',background:'var(--bg)',borderRadius:10,border:'1px solid var(--border-light)'}}>
+                        <div style={{fontSize:10,fontWeight:600,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.3px'}}>{it.l}</div>
+                        <div style={{fontSize:13,fontWeight:600,marginTop:3,color:'var(--text)'}}>{it.v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Generated Prompt */}
+              {promptRevealed && (
+                <div className="anim-up" style={{marginTop:8}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                    <ISparkle size={16} color="var(--accent)"/>
+                    <span style={{fontSize:13,fontWeight:700,color:'var(--accent)'}}>生成的中文 Prompt</span>
+                  </div>
+                  <div style={{padding:16,background:'var(--accent-bg)',borderRadius:12,border:'1px solid var(--accent-border)',lineHeight:1.8,fontSize:13,color:'var(--text)',position:'relative'}}>
+                    {aiResult.prompt}
+                    <button onClick={()=>{navigator.clipboard?.writeText(aiResult.prompt);setCopied(true);setTimeout(()=>setCopied(false),2000)}}
+                      style={{position:'absolute',top:10,right:10,padding:'5px 10px',borderRadius:6,background:'var(--surface)',border:'1px solid var(--accent-border)',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:copied?'var(--emerald)':'var(--accent)'}}>
+                      {copied?<ICheck size={12}/>:<ICopy size={12}/>} {copied?'已复制':'复制'}
+                    </button>
+                  </div>
+                  {aiResult.negPrompt && (
+                    <div style={{marginTop:12}}>
+                      <div style={{fontSize:11,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:6}}>负向提示词</div>
+                      <div style={{padding:12,background:'#FFF5F5',borderRadius:10,fontSize:12.5,lineHeight:1.6,color:'#C0392B',border:'1px solid #FDECEC'}}>{aiResult.negPrompt}</div>
+                    </div>
+                  )}
+                  <div style={{display:'flex',gap:8,marginTop:14}}>
+                    <button className="btn-ghost" style={{display:'flex',alignItems:'center',gap:6,flex:1}}>
+                      <IWand size={14}/> AI 优化
+                    </button>
+                    <button onClick={retry} className="btn-ghost" style={{display:'flex',alignItems:'center',gap:6,flex:1}}>
+                      <IRefresh size={14}/> 重新分析
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Fragment>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─── Settings Modal ─── */
+const SettingsModal=({onClose,apiConfig,setApiConfig})=>{
+  const [preset,setPreset]=useState(()=>{const c=getApiConfig();return c?.presetId||'qwen37'});
+  const [endpoint,setEndpoint]=useState(apiConfig?.endpoint||API_PRESETS[0].endpoint);
+  const [model,setModel]=useState(apiConfig?.model||API_PRESETS[0].model);
+  const [apiKey,setApiKey]=useState(apiConfig?.apiKey||'');
+  const [saved,setSaved]=useState(false);
+  const selectPreset=(id)=>{setPreset(id);const p=API_PRESETS.find(x=>x.id===id);if(p&&p.id!=='custom'){setEndpoint(p.endpoint);setModel(p.model);const cfg={presetId:id,endpoint:p.endpoint,model:p.model,apiKey:apiKey.trim()};if(apiKey.trim())setApiConfig(cfg)}};
+  const handleSave=()=>{const cfg={presetId:preset,endpoint,model,apiKey:apiKey.trim()};saveApiConfig(cfg);setApiConfig(cfg);setSaved(true);setTimeout(()=>{setSaved(false);onClose()},1200)};
+  return(
+    <div className="anim-fade" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.3)',backdropFilter:'blur(16px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300}} onClick={onClose}>
+      <div className="anim-scale" onClick={e=>e.stopPropagation()} style={{width:500,background:'var(--surface)',borderRadius:14,boxShadow:'var(--shadow-lg)',overflow:'hidden'}}>
+        <div style={{padding:'20px 24px 14px',display:'flex',alignItems:'center',borderBottom:'0.5px solid rgba(0,0,0,0.06)'}}>
+          <div><h3 style={{fontSize:16,fontWeight:600,letterSpacing:'-.02em'}}>AI API 设置</h3><p style={{fontSize:12,color:'var(--text-3)',marginTop:2}}>配置视觉模型来启用真实的图片分析能力</p></div>
+          <div style={{flex:1}}/>
+          <button onClick={onClose} style={{color:'var(--text-3)',padding:4,borderRadius:6,display:'flex',transition:'all .15s'}}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,0,0,.04)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}><IX size={17}/></button>
+        </div>
+        <div style={{padding:'18px 24px',maxHeight:'60vh',overflowY:'auto'}}>
+          <div style={{marginBottom:18}}>
+            <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:6,letterSpacing:'.1px'}}>选择 AI 平台</label>
+            <div style={{display:'flex',flexDirection:'column',gap:5}}>
+              {API_PRESETS.map(p=>(
+                <button key={p.id} onClick={()=>selectPreset(p.id)}
+                  style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',borderRadius:8,textAlign:'left',fontSize:13,transition:'all .15s ease',
+                    background:preset===p.id?'var(--accent-bg)':'var(--bg)',border:preset===p.id?'1.5px solid var(--accent)':'1px solid rgba(0,0,0,0.06)',
+                    fontWeight:preset===p.id?600:400,color:preset===p.id?'var(--accent)':'var(--text)',letterSpacing:'-.01em'}}>
+                  <div style={{width:18,height:18,borderRadius:'50%',border:preset===p.id?'2px solid var(--accent)':'2px solid rgba(0,0,0,.15)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    {preset===p.id&&<div style={{width:8,height:8,borderRadius:'50%',background:'var(--accent)'}}/>}
+                  </div>
+                  <div style={{flex:1}}><div>{p.name}</div>{p.hint&&<div style={{fontSize:10,color:'var(--text-3)',marginTop:1,fontWeight:400}}>{p.hint}</div>}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{marginBottom:14}}>
+            <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:5,letterSpacing:'.1px'}}>API 地址</label>
+            <input value={endpoint} onChange={e=>setEndpoint(e.target.value)} style={{width:'100%',padding:'7px 10px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,background:'var(--bg)',outline:'none',fontSize:12,fontFamily:'monospace',color:'var(--text)',transition:'border-color .2s ease'}} onFocus={e=>e.target.style.borderColor='var(--accent)'} onBlur={e=>e.target.style.borderColor='rgba(0,0,0,.1)'}/>
+          </div>
+          <div style={{marginBottom:14}}>
+            <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:5,letterSpacing:'.1px'}}>模型名称</label>
+            <input value={model} onChange={e=>setModel(e.target.value)} style={{width:'100%',padding:'7px 10px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,background:'var(--bg)',outline:'none',fontSize:12,fontFamily:'monospace',color:'var(--text)',transition:'border-color .2s ease'}} onFocus={e=>e.target.style.borderColor='var(--accent)'} onBlur={e=>e.target.style.borderColor='rgba(0,0,0,.1)'}/>
+          </div>
+          <div style={{marginBottom:14}}>
+            <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:5,letterSpacing:'.1px'}}>API Key</label>
+            <input value={apiKey} onChange={e=>setApiKey(e.target.value)} type="password" placeholder="sk-..." style={{width:'100%',padding:'7px 10px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,background:'var(--bg)',outline:'none',fontSize:12,fontFamily:'monospace',color:'var(--text)',transition:'border-color .2s ease'}} onFocus={e=>e.target.style.borderColor='var(--accent)'} onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,.1)';if(apiKey.trim()){const cfg={presetId:preset,endpoint,model,apiKey:apiKey.trim()};setApiConfig(cfg)}}}/>
+            <p style={{fontSize:11,color:'var(--text-3)',marginTop:4}}>Key 仅保存在浏览器本地，不会上传到任何服务器</p>
+          </div>
+          <div style={{padding:'8px 12px',background:'rgba(255,149,0,.06)',border:'1px solid rgba(255,149,0,.15)',borderRadius:6,marginBottom:14}}>
+            <p style={{fontSize:11,color:'#B25000',margin:0,lineHeight:1.5}}>如果遇到跨域 (CORS) 错误，可能需要通过本地代理或浏览器 CORS 扩展。通义千问 DashScope 通常支持浏览器直接调用。</p>
+          </div>
+          <div style={{padding:'8px 12px',background:'rgba(52,199,89,.04)',border:'1px solid rgba(52,199,89,.15)',borderRadius:6}}>
+            <p style={{fontSize:11,color:'#166534',margin:'0 0 8px',lineHeight:1.6,fontWeight:600}}>数据备份</p>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>{const userItems=getUserItems();const data={apiConfig:getApiConfig(),items:userItems,exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='PromptOS-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url)}} style={{padding:'6px 14px',fontSize:12,fontWeight:500,background:'#ECFDF5',border:'1.5px solid #6EE7B7',borderRadius:8,color:'#065F46',cursor:'pointer'}}>
+                导出数据
+              </button>
+              <label style={{padding:'6px 14px',fontSize:12,fontWeight:500,background:'#ECFDF5',border:'1.5px solid #6EE7B7',borderRadius:8,color:'#065F46',cursor:'pointer',display:'inline-block'}}>
+                导入数据
+                <input type="file" accept=".json" style={{display:'none'}} onChange={(e)=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(ev)=>{try{const data=JSON.parse(ev.target.result);if(data.apiConfig)saveApiConfig(data.apiConfig);if(data.items&&Array.isArray(data.items)){saveUserItems(data.items);window.location.reload()}alert('导入成功！')}catch(err){alert('文件格式错误，请选择正确的备份文件')}};reader.readAsText(file)}}/>
+              </label>
+            </div>
+            <p style={{fontSize:10,color:'#166534',margin:'8px 0 0',opacity:.7}}>建议定期导出数据备份，防止浏览器清除本地数据</p>
+          </div>
+        </div>
+        <div style={{padding:'14px 24px',borderTop:'0.5px solid rgba(0,0,0,0.06)',display:'flex',gap:8,justifyContent:'flex-end'}}>
+          <button onClick={onClose} className="btn-ghost">取消</button>
+          <button onClick={handleSave} className="btn-primary" style={{display:'flex',alignItems:'center',gap:6,minWidth:90,justifyContent:'center'}}>
+            {saved?<><ICheck size={14} color="#fff"/> 已保存</>:<>保存设置</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Dashboard ─── */
+const Dashboard=({items,folders,setPage,setViewingItem,setFolderFilter,onUpload})=>{
+  const recent=items.slice(0,6);
+  const favCount=items.filter(i=>i.rating>=4).length;
+  const usedRecently=[...items].sort((a,b)=>b.uses-a.uses).filter(i=>i.uses>0).slice(0,8);
+
+  const StatCard=({label,value,icon,bg})=>(
+    <div className="card" style={{padding:'16px 18px',borderRadius:12,display:'flex',alignItems:'center',gap:14}}>
+      <div style={{width:40,height:40,borderRadius:10,background:bg||'var(--accent-bg)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{icon}</div>
+      <div style={{minWidth:0}}>
+        <div style={{fontSize:22,fontWeight:700,letterSpacing:'-.5px',color:'var(--text)',lineHeight:1.1}}>{value}</div>
+        <div style={{fontSize:11.5,color:'var(--text-2)',fontWeight:500,marginTop:2}}>{label}</div>
+      </div>
+    </div>
+  );
+
+  return(
+    <div className="anim-up" style={{padding:'20px 24px',overflowY:'auto',height:'100%'}}>
+      {/* Upload button (top-left, prominent) + title */}
+      <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:22}}>
+        <button onClick={onUpload} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 22px',borderRadius:11,background:'linear-gradient(135deg,#007AFF,#5856D6)',color:'#fff',fontSize:14,fontWeight:600,letterSpacing:'-.01em',border:'none',cursor:'pointer',boxShadow:'0 3px 14px rgba(0,122,255,.3)',transition:'all .25s cubic-bezier(.25,.1,.25,1)'}}
+          onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 6px 20px rgba(0,122,255,.35)'}}
+          onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 3px 14px rgba(0,122,255,.3)'}}>
+          <IUpload size={17} color="#fff" sw={2}/> <span>上传作品</span>
+        </button>
+        <div style={{borderLeft:'1px solid rgba(0,0,0,.08)',height:28}}/>
+        <div>
+          <h1 style={{fontSize:20,fontWeight:700,letterSpacing:'-.3px'}}>工作台</h1>
+          <p style={{fontSize:12,color:'var(--text-3)',marginTop:1}}>管理你的 AI 创作资产</p>
+        </div>
+      </div>
+
+      {/* Stat cards */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:24}}>
+        <StatCard label="Prompt 资产" value={items.length} icon={<IBlocks size={18} color="var(--accent)"/>} bg="rgba(0,122,255,.08)"/>
+        <StatCard label="覆盖平台" value={PLATFORMS.length} icon={<IGrid size={18} color="var(--emerald)"/>} bg="rgba(52,199,89,.08)"/>
+        <StatCard label="精选作品" value={favCount} icon={<ISparkle size={18} color="var(--amber)"/>} bg="rgba(255,149,0,.08)"/>
+      </div>
+
+      {/* Recent creations - full width */}
+      <div style={{marginBottom:24}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <h3 style={{fontSize:15,fontWeight:600,letterSpacing:'-.2px'}}>最近创作</h3>
+          <button onClick={()=>setPage('library')} style={{fontSize:12,color:'var(--accent)',fontWeight:500,letterSpacing:'-.01em'}}>查看全部 →</button>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
+          {recent.slice(0,4).map((item,i)=>(
+            <div key={item.id} className="card anim-up" style={{animationDelay:`${i*0.05}s`,overflow:'hidden',cursor:'pointer',borderRadius:10}}
+              onClick={()=>{setViewingItem(item);setPage('library')}}>
+              <img src={item.thumbnail||phImg(item.seed,300,200)} alt="" style={{width:'100%',aspectRatio:'4/3',objectFit:'cover'}}/>
+              <div style={{padding:'8px 10px'}}>
+                <div style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-.01em'}}>{item.title}</div>
+                <div style={{display:'flex',alignItems:'center',gap:5,marginTop:4}}>
+                  <span className="tag" style={{background:PLATFORMS.find(p=>p.id===item.platform)?.bg,color:PLATFORMS.find(p=>p.id===item.platform)?.color,fontSize:10,padding:'2px 6px'}}>{PLATFORMS.find(p=>p.id===item.platform)?.name}</span>
+                  <span style={{fontSize:10.5,color:'var(--text-3)',marginLeft:'auto'}}>{item.date.slice(5)}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent usage */}
+      {usedRecently.length>0&&(
+        <div>
+          <h3 style={{fontSize:15,fontWeight:600,letterSpacing:'-.2px',marginBottom:12}}>最近使用</h3>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
+            {usedRecently.slice(0,4).map((item,i)=>(
+              <div key={item.id} className="card anim-up" style={{animationDelay:`${i*0.04}s`,display:'flex',gap:12,padding:10,cursor:'pointer',alignItems:'center',borderRadius:10}}
+                onClick={()=>{setViewingItem(item);setPage('library')}}>
+                <img src={item.thumbnail||phImg(item.seed,80,80)} alt="" style={{width:48,height:48,borderRadius:8,objectFit:'cover',flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-.01em'}}>{item.title}</div>
+                  <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3}}>
+                    <span className="tag" style={{background:PLATFORMS.find(p=>p.id===item.platform)?.bg,color:PLATFORMS.find(p=>p.id===item.platform)?.color,fontSize:10,padding:'2px 6px'}}>{PLATFORMS.find(p=>p.id===item.platform)?.name}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ─── Prompt Card (for Library) ─── */
+const PCard=({item,onClick,i})=>{
+  const plat=PLATFORMS.find(p=>p.id===item.platform);
+  const heights=[180,210,160,230,190,170,220,185,200,155,180,210];
+  const h=heights[item.id%heights.length];
+  const [hovered,setHovered]=React.useState(false);
+  const [fav,setFav]=React.useState(item.rating>=4);
+  return(
+    <div className="card anim-up" style={{animationDelay:`${(i||0)*0.03}s`,breakInside:'avoid',marginBottom:12,overflow:'hidden',cursor:'pointer',position:'relative',borderRadius:12,transition:'all .25s cubic-bezier(.25,.1,.25,1)',transform:hovered?'translateY(-2px)':'none',boxShadow:hovered?'var(--shadow-md)':'var(--shadow-sm)'}}
+      onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)}
+      onClick={()=>onClick(item)}>
+      <div style={{position:'relative'}}>
+        <img src={item.thumbnail||phImg(item.seed,400,h)} alt="" style={{width:'100%',height:h,objectFit:'cover',display:'block'}}/>
+        <div style={{position:'absolute',top:8,left:8,display:'flex',gap:4}}>
+          <span className="tag" style={{background:'rgba(255,255,255,.88)',backdropFilter:'blur(8px)',color:plat?.color,fontWeight:600,fontSize:10,padding:'2px 7px'}}>{plat?.name}</span>
+        </div>
+        {item.rating>=4&&<div style={{position:'absolute',top:8,right:8,background:'rgba(255,255,255,.88)',backdropFilter:'blur(8px)',borderRadius:6,padding:'2px 6px',fontSize:11,color:'#FF9500',fontWeight:600}}>★ {item.rating}</div>}
+        {/* Hover overlay */}
+        <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(2px)',opacity:hovered?1:0,transition:'opacity .2s ease',display:'flex',alignItems:'center',justifyContent:'center',gap:8,flexWrap:'wrap',padding:16}}>
+          <button onClick={e=>{e.stopPropagation();onClick(item)}} style={{width:36,height:36,borderRadius:8,background:'rgba(255,255,255,.2)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}} title="查看"><IEdit size={15} color="#fff"/></button>
+          <button onClick={e=>{e.stopPropagation();navigator.clipboard?.writeText(item.prompt)}} style={{width:36,height:36,borderRadius:8,background:'rgba(255,255,255,.2)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}} title="复制 Prompt"><ICopy size={15} color="#fff"/></button>
+          <button onClick={e=>{e.stopPropagation();setFav(!fav)}} style={{width:36,height:36,borderRadius:8,background:'rgba(255,255,255,.2)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}} title="收藏"><IHeart size={15} color={fav?'#FF3B30':'#fff'} filled={fav}/></button>
+          <button onClick={e=>{e.stopPropagation();onClick(item)}} style={{width:36,height:36,borderRadius:8,background:'rgba(255,255,255,.2)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}} title="AI 解析"><IWand size={15} color="#fff"/></button>
+        </div>
+      </div>
+      <div style={{padding:'8px 10px'}}>
+        <div style={{fontSize:12.5,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-.01em'}}>{item.title}</div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:3,marginTop:5}}>
+          {item.tags.slice(0,2).map(t=><span key={t} className="tag" style={{background:'var(--surface-alt)',color:'var(--text-2)',fontSize:10,padding:'1px 6px'}}>#{t}</span>)}
+        </div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:6,paddingTop:6,borderTop:'0.5px solid rgba(0,0,0,0.04)',fontSize:10.5,color:'var(--text-3)'}}>
+          <span>{item.date.slice(5)}</span>
+          <span style={{display:'flex',alignItems:'center',gap:3}}><IEye size={10}/> {item.uses}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Detail Panel ─── */
+const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
+  const [tab,setTab]=useState('analysis');
+  const [copied,setCopied]=useState(false);
+  const [editing,setEditing]=useState(false);
+  const [editData,setEditData]=useState(null);
+  const [confirmDel,setConfirmDel]=useState(false);
+  const plat=PLATFORMS.find(p=>p.id===item.platform);
+  const copyText=(t)=>{navigator.clipboard?.writeText(t);setCopied(true);setTimeout(()=>setCopied(false),2000)};
+  const a=item.analysis;
+
+  const startEdit=()=>{setEditData({title:item.title,prompt:item.prompt,neg:item.neg||'',note:item.note||'',platform:item.platform,rating:item.rating,tags:item.tags.join(', '),folder:item.folder||'\u672a\u5206\u7c7b'});setEditing(true)};
+  const cancelEdit=()=>{setEditing(false);setEditData(null)};
+  const saveEdit=()=>{if(!editData)return;const updated={...item,title:editData.title,prompt:editData.prompt,neg:editData.neg,note:editData.note,platform:editData.platform,rating:parseInt(editData.rating)||item.rating,tags:editData.tags.split(',').map(s=>s.trim()).filter(Boolean),folder:editData.folder||item.folder};onUpdate(updated);setEditing(false);setEditData(null)};
+  const handleDelete=()=>{onDelete(item.id)};
+
+  const inpStyle={width:'100%',padding:'7px 10px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,background:'var(--bg)',outline:'none',fontSize:12.5,color:'var(--text)',fontFamily:'inherit',transition:'border-color .2s ease',letterSpacing:'-.01em'};
+  const labelStyle={display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:4,letterSpacing:'.1px'};
+
+  // Chip-style analysis data
+  const chipData=a?[
+    {l:'\u4e3b\u4f53',v:a.subject,e:'\ud83c\udfaf',c:'var(--accent)'},
+    {l:'\u4eba\u7269',v:a.character,e:'\ud83d\udc64',c:'var(--accent)'},
+    {l:'\u73af\u5883',v:a.env,e:'\ud83c\udfde\ufe0f',c:'var(--accent)'},
+    {l:'\u98ce\u683c',v:a.style,e:'\ud83c\udfa8',c:'var(--violet)'},
+    {l:'\u8272\u5f69',v:a.color,e:'\ud83c\udf08',c:'var(--violet)'},
+    {l:'\u6784\u56fe',v:a.comp,e:'\ud83d\udcf7',c:'var(--violet)'},
+    {l:'\u955c\u5934',v:a.lens,e:'\ud83d\udd0d',c:'var(--violet)'},
+    {l:'\u5149\u5f71',v:a.light,e:'\u2600\ufe0f',c:'var(--violet)'},
+  ].filter(c=>c.v&&c.v!=='\u2014'&&c.v!=='-'):[];
+  const techChips=a?[
+    ...((a.models||[]).map(m=>({l:'\u6a21\u578b',v:m,c:'var(--emerald)'}))),
+    ...((a.suggestedParams||[]).map(p=>({l:'\u53c2\u6570',v:p,c:'var(--amber)'}))),
+  ]:[];
+
+  const tabs=[
+    {id:'analysis',label:'AI \u89e3\u6790',icon:<IWand size={14}/>},
+    {id:'prompt',label:'Prompt',icon:<IEdit size={14}/>},
+    {id:'meta',label:'\u53c2\u6570',icon:<ISliders size={14}/>},
+    {id:'notes',label:'\u7b14\u8bb0',icon:<IFolder size={14}/>},
+  ];
+
+  // confirm delete overlay
+  if(confirmDel)return(
+    <div className="anim-slide" style={{width:400,height:'100%',background:'var(--surface)',borderLeft:'0.5px solid rgba(0,0,0,0.08)',display:'flex',flexDirection:'column',flexShrink:0,alignItems:'center',justifyContent:'center',padding:36}}>
+      <div style={{width:52,height:52,borderRadius:14,background:'rgba(255,59,48,.08)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:14}}>
+        <ITrash size={22} color="var(--rose)"/>
+      </div>
+      <h3 style={{fontSize:16,fontWeight:600,marginBottom:4,letterSpacing:'-.02em'}}>{'\u786e\u8ba4\u5220\u9664\uff1f'}</h3>
+      <p style={{fontSize:13,color:'var(--text-3)',textAlign:'center',marginBottom:20,lineHeight:1.5}}>{'\u300c'}{item.title}{'\u300d\u5c06\u88ab\u79fb\u5165\u56de\u6536\u7ad9\u3002'}<br/>7 {'\u5929\u540e\u81ea\u52a8\u5f7b\u5e95\u5220\u9664\uff0c\u671f\u95f4\u53ef\u968f\u65f6\u6062\u590d\u3002'}</p>
+      <div style={{display:'flex',gap:8}}>
+        <button onClick={()=>setConfirmDel(false)} className="btn-ghost">{'\u53d6\u6d88'}</button>
+        <button onClick={handleDelete} style={{padding:'7px 18px',borderRadius:8,background:'var(--rose)',color:'#fff',border:'none',fontSize:13,fontWeight:500,cursor:'pointer'}}>{'\u786e\u8ba4\u5220\u9664'}</button>
+      </div>
+    </div>
+  );
+
+  return(
+    <div className="anim-slide" style={{width:400,height:'100%',background:'var(--surface)',borderLeft:'0.5px solid rgba(0,0,0,0.08)',display:'flex',flexDirection:'column',flexShrink:0,overflowY:'auto'}}>
+      {/* Header */}
+      <div style={{padding:'14px 18px',display:'flex',alignItems:'center',gap:10,borderBottom:'0.5px solid rgba(0,0,0,0.06)',flexShrink:0}}>
+        <button onClick={onClose} style={{color:'var(--text-3)',padding:4,borderRadius:6,display:'flex',transition:'all .15s'}}
+          onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,0,0,.04)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
+          <IX size={17}/>
+        </button>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:15,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-.02em'}}>{item.title}</div>
+          <div style={{display:'flex',gap:6,marginTop:2,alignItems:'center'}}>
+            <span className="tag" style={{background:plat?.bg,color:plat?.color,fontSize:10}}>{plat?.name}</span>
+            <span style={{fontSize:11,color:'var(--text-3)'}}>{item.date}</span>
+          </div>
+        </div>
+        <button onClick={()=>{if(editing)saveEdit();else startEdit()}} style={{padding:'5px 10px',borderRadius:6,fontSize:12,fontWeight:500,cursor:'pointer',display:'flex',alignItems:'center',gap:4,
+          background:editing?'var(--accent)':'transparent',color:editing?'#fff':'var(--text-2)',border:editing?'none':'1px solid rgba(0,0,0,.1)',transition:'all .15s ease',letterSpacing:'-.01em'}}>
+          {editing?<><ICheck size={13}/> {'\u4fdd\u5b58'}</>:<><IEdit size={13}/> {'\u7f16\u8f91'}</>}
+        </button>
+        <button onClick={()=>setConfirmDel(true)} style={{padding:'5px 8px',borderRadius:6,fontSize:12,cursor:'pointer',color:'var(--rose)',background:'transparent',border:'1px solid rgba(255,59,48,.15)',transition:'all .15s ease'}} title={'\u5220\u9664'}
+          onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,59,48,.06)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
+          <ITrash size={13}/>
+        </button>
+      </div>
+
+      {/* Image */}
+      <div style={{padding:16,flexShrink:0}}>
+        <img src={item.thumbnail||phImg(item.seed,400,280)} alt="" style={{width:'100%',borderRadius:10,display:'block'}}/>
+      </div>
+
+      {/* Tabs */}
+      <div style={{padding:'0 18px',display:'flex',gap:0,borderBottom:'0.5px solid rgba(0,0,0,0.06)',flexShrink:0}}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)}
+            style={{padding:'9px 11px',fontSize:12,fontWeight:tab===t.id?600:400,color:tab===t.id?'var(--accent)':'var(--text-3)',borderBottom:tab===t.id?'2px solid var(--accent)':'2px solid transparent',transition:'all .15s ease',display:'flex',alignItems:'center',gap:4,letterSpacing:'-.01em'}}>
+            {t.icon}{t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div style={{padding:16,flex:1}}>
+        {tab==='analysis' && a && (
+          <div className="anim-fade">
+            {/* Chips */}
+            <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
+              {chipData.map((c,i)=>(
+                <span key={i} className="anim-tag" style={{animationDelay:`${i*0.04}s`,display:'inline-flex',alignItems:'center',gap:4,padding:'6px 12px',borderRadius:20,fontSize:12,fontWeight:500,background:'var(--bg)',border:'1px solid var(--border-light)',color:'var(--text)'}}>
+                  <span style={{fontSize:13}}>{c.e}</span>
+                  <span style={{color:'var(--text-3)',fontSize:10,fontWeight:600,textTransform:'uppercase'}}>{c.l}</span>
+                  <span style={{fontWeight:600}}>{c.v}</span>
+                </span>
+              ))}
+            </div>
+            {/* Tech chips */}
+            {techChips.length>0&&(
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:8}}>{'\u6280\u672f\u53c2\u8003'}</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {techChips.map((c,i)=>(
+                    <span key={i} className="anim-tag" style={{animationDelay:`${(chipData.length+i)*0.04}s`,padding:'5px 10px',borderRadius:20,fontSize:11,fontWeight:600,
+                      background:c.c==='var(--emerald)'?'rgba(52,199,89,.08)':'rgba(255,149,0,.08)',
+                      color:c.c==='var(--emerald)'?'#059669':'#B45309',
+                      border:`1px solid ${c.c==='var(--emerald)'?'rgba(52,199,89,.2)':'rgba(255,149,0,.2)'}`}}>
+                      {c.v}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {tab==='analysis' && !a && (
+          <div style={{textAlign:'center',padding:40,color:'var(--text-3)'}}>
+            <p style={{fontSize:13}}>{'\u6b64\u8d44\u4ea7\u65e0 AI \u89e3\u6790\u6570\u636e'}</p>
+          </div>
+        )}
+
+        {tab==='prompt' && (
+          <div className="anim-fade">
+            <div style={{marginBottom:16}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                <span style={{fontSize:11,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.5px'}}>{'\u6b63\u5411\u63d0\u793a\u8bcd'}</span>
+                <button onClick={()=>copyText(editing?editData.prompt:item.prompt)} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:copied?'var(--emerald)':'var(--accent)',fontWeight:600}}>
+                  {copied?<ICheck size={13}/>:<ICopy size={13}/>} {copied?'\u5df2\u590d\u5236':'\u590d\u5236'}
+                </button>
+              </div>
+              {editing?(
+                <textarea value={editData.prompt} onChange={e=>setEditData(d=>({...d,prompt:e.target.value}))} rows={5} style={{...inpStyle,lineHeight:1.7,resize:'vertical'}}/>
+              ):(
+                <div style={{padding:14,background:'var(--accent-bg)',borderRadius:10,fontSize:12.5,lineHeight:1.7,border:'1px solid var(--accent-border)',wordBreak:'break-word'}}>
+                  {item.prompt}
+                </div>
+              )}
+            </div>
+            <div>
+              <span style={{fontSize:11,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.5px'}}>{'\u8d1f\u5411\u63d0\u793a\u8bcd'}</span>
+              {editing?(
+                <textarea value={editData.neg} onChange={e=>setEditData(d=>({...d,neg:e.target.value}))} rows={2} style={{...inpStyle,lineHeight:1.6,marginTop:6,resize:'vertical'}}/>
+              ):(
+                <div style={{padding:12,background:'#FFF5F5',borderRadius:10,fontSize:12.5,lineHeight:1.6,color:'#C0392B',border:'1px solid #FDECEC',marginTop:6}}>{item.neg||'\u65e0'}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {tab==='meta' && (
+          <div className="anim-fade">
+            <div style={{marginBottom:16}}>
+              <span style={labelStyle}>{'\u53c2\u6570'}</span>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6}}>
+                {Object.entries(item.params||{}).map(([k,v])=>(
+                  <span key={k} style={{padding:'5px 12px',background:'var(--bg)',borderRadius:20,fontSize:11.5,border:'1px solid var(--border-light)',fontWeight:500}}>
+                    <span style={{color:'var(--text-3)'}}>{k}:</span> <strong>{String(v)}</strong>
+                  </span>
+                ))}
+                {Object.keys(item.params||{}).length===0&&<span style={{fontSize:12,color:'var(--text-3)'}}>{'\u65e0\u53c2\u6570'}</span>}
+              </div>
+            </div>
+            <div style={{marginBottom:16}}>
+              <span style={labelStyle}>{'\u5e73\u53f0'}</span>
+              {editing?(
+                <select value={editData.platform} onChange={e=>setEditData(d=>({...d,platform:e.target.value}))} style={{...inpStyle,marginTop:4,cursor:'pointer'}}>
+                  {PLATFORMS.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              ):(
+                <div style={{marginTop:6}}><span className="tag" style={{background:plat?.bg,color:plat?.color,padding:'4px 12px'}}>{plat?.name}</span></div>
+              )}
+            </div>
+            <div style={{marginBottom:16}}>
+              <span style={labelStyle}>{'\u6240\u5c5e\u6536\u85cf\u5939'}</span>
+              {editing?(
+                <select value={editData.folder} onChange={e=>setEditData(d=>({...d,folder:e.target.value}))} style={{...inpStyle,marginTop:4,cursor:'pointer'}}>
+                  {allFolders&&allFolders.map(f=><option key={f.name} value={f.name}>{f.icon} {f.name}</option>)}
+                  <option value={'\u672a\u5206\u7c7b'}>{'\ud83d\udcc2 \u672a\u5206\u7c7b'}</option>
+                </select>
+              ):(
+                <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6}}>
+                  {allFolders&&allFolders.map(f=>(
+                    <button key={f.name} onClick={()=>onUpdate({...item,folder:f.name})}
+                      style={{padding:'4px 10px',borderRadius:20,fontSize:11,fontWeight:600,cursor:'pointer',transition:'all .15s',
+                        background:item.folder===f.name?'var(--accent-bg)':'var(--surface-alt)',
+                        color:item.folder===f.name?'var(--accent)':'var(--text-3)',
+                        border:item.folder===f.name?'1.5px solid var(--accent-border)':'1.5px solid transparent'}}
+                      onMouseEnter={e=>{if(item.folder!==f.name)e.currentTarget.style.borderColor='var(--border)'}}
+                      onMouseLeave={e=>{if(item.folder!==f.name)e.currentTarget.style.borderColor='transparent'}}>
+                      {f.icon} {f.name}
+                    </button>
+                  ))}
+                  <button onClick={()=>onUpdate({...item,folder:'\u672a\u5206\u7c7b'})}
+                    style={{padding:'4px 10px',borderRadius:20,fontSize:11,fontWeight:item.folder==='\u672a\u5206\u7c7b'||!item.folder?600:400,cursor:'pointer',transition:'all .15s',
+                      background:(item.folder==='\u672a\u5206\u7c7b'||!item.folder)?'var(--accent-bg)':'var(--surface-alt)',
+                      color:(item.folder==='\u672a\u5206\u7c7b'||!item.folder)?'var(--accent)':'var(--text-3)',
+                      border:(item.folder==='\u672a\u5206\u7c7b'||!item.folder)?'1.5px solid var(--accent-border)':'1.5px solid transparent'}}>
+                    {'\ud83d\udcc2 \u672a\u5206\u7c7b'}
+                  </button>
+                </div>
+              )}
+            </div>
+            <div>
+              <span style={labelStyle}>{'\u8bc4\u5206'}</span>
+              {editing?(
+                <div style={{display:'flex',gap:6,marginTop:4}}>
+                  {[1,2,3,4,5].map(r=>(
+                    <button key={r} onClick={()=>setEditData(d=>({...d,rating:r}))} style={{padding:'6px 10px',borderRadius:8,border:editData.rating>=r?'2px solid #F59E0B':'1.5px solid var(--border)',background:editData.rating>=r?'#FFFBEB':'var(--bg)',cursor:'pointer',fontSize:14}}>
+                      {editData.rating>=r?'\u2605':'\u2606'}
+                    </button>
+                  ))}
+                </div>
+              ):(
+                <span style={{color:'#F59E0B',fontSize:14}}>{'\u2605'.repeat(item.rating)}{'\u2606'.repeat(5-item.rating)}</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {tab==='notes' && (
+          <div className="anim-fade">
+            <div style={{marginBottom:16}}>
+              <span style={labelStyle}>{'\u7b14\u8bb0'}</span>
+              {editing?(
+                <textarea value={editData.note} onChange={e=>setEditData(d=>({...d,note:e.target.value}))} rows={4} style={{...inpStyle,lineHeight:1.8,resize:'vertical'}}/>
+              ):(
+                <div style={{padding:16,background:'var(--bg)',borderRadius:10,border:'1px solid var(--border-light)',lineHeight:1.8,fontSize:13,color:'var(--text-2)'}}>
+                  {item.note||'\u6682\u65e0\u7b14\u8bb0'}
+                </div>
+              )}
+            </div>
+            <div>
+              <span style={labelStyle}>{'\u6807\u7b7e'}</span>
+              {editing?(
+                <input value={editData.tags} onChange={e=>setEditData(d=>({...d,tags:e.target.value}))} placeholder={'\u7528\u9017\u53f7\u5206\u9694'} style={{...inpStyle,marginTop:4}}/>
+              ):(
+                <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6}}>
+                  {item.tags.map(t=><span key={t} className="tag" style={{background:'var(--surface-alt)',color:'var(--text-2)',padding:'3px 10px',borderRadius:20,fontSize:11}}>#{t}</span>)}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─── Library Page ─── */
+const Library=({items,viewingItem,setViewingItem,onUpdate,onDelete,folderFilter,setFolderFilter,batchMode,setBatchMode,selectedIds,toggleBatchSelect,selectAll,onBatchDelete,allFolders,onBatchMoveFolder})=>{
+  const [platFilter,setPlatFilter]=useState('all');
+  const [tagFilter,setTagFilter]=useState('all');
+  const [sort,setSort]=useState('date');
+  const [showMoveMenu,setShowMoveMenu]=useState(false);
+  const [tagsExpanded,setTagsExpanded]=useState(false);
+  const allTags=[...new Set(items.flatMap(i=>i.tags))];
+
+  const filtered=useMemo(()=>{
+    let r=[...items];
+    if(platFilter!=='all')r=r.filter(i=>i.platform===platFilter);
+    if(tagFilter!=='all')r=r.filter(i=>i.tags.includes(tagFilter));
+    if(sort==='date')r.sort((a,b)=>new Date(b.date)-new Date(a.date));
+    if(sort==='rating')r.sort((a,b)=>b.rating-a.rating);
+    if(sort==='uses')r.sort((a,b)=>b.uses-a.uses);
+    return r;
+  },[items,platFilter,tagFilter,sort]);
+
+  const chipBtn=(active,onClick,children)=>({
+    padding:'4px 11px',borderRadius:20,fontSize:11.5,fontWeight:active?600:400,cursor:'pointer',transition:'all .15s ease',letterSpacing:'-.01em',
+    background:active?'var(--accent)':'var(--surface)',color:active?'#fff':'var(--text-2)',
+    border:active?'1px solid var(--accent)':'1px solid rgba(0,0,0,.08)',
+  });
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',height:'100%'}}>
+      {/* Filter bar */}
+      <div style={{padding:'10px 20px',borderBottom:'0.5px solid rgba(0,0,0,0.06)',display:'flex',alignItems:'center',gap:6,flexShrink:0,flexWrap:'wrap'}}>
+        {folderFilter&&(
+          <div style={{display:'flex',alignItems:'center',gap:5,padding:'3px 10px',background:'var(--accent-bg)',borderRadius:20,border:'1px solid var(--accent-border)'}}>
+            <span style={{fontSize:11.5,fontWeight:500,color:'var(--accent)'}}>{'\ud83d\udcc1'} {folderFilter}</span>
+            <button onClick={()=>setFolderFilter(null)} style={{color:'var(--accent)',padding:0,lineHeight:1}}><IX size={12}/></button>
+          </div>
+        )}
+        <div style={{width:1,height:18,background:'rgba(0,0,0,.08)',margin:'0 4px'}}/>
+        <button onClick={()=>setPlatFilter('all')} style={chipBtn(platFilter==='all')}>{'\u5168\u90e8'}</button>
+        {PLATFORMS.map(p=>(
+          <button key={p.id} onClick={()=>setPlatFilter(p.id)} style={chipBtn(platFilter===p.id)}>{p.name}</button>
+        ))}
+        <div style={{width:1,height:18,background:'rgba(0,0,0,.08)',margin:'0 4px'}}/>
+        <button onClick={()=>setTagsExpanded(!tagsExpanded)} style={{padding:'4px 11px',borderRadius:20,fontSize:11.5,fontWeight:tagFilter!=='all'?600:500,cursor:'pointer',transition:'all .15s ease',
+          background:tagFilter!=='all'?'var(--accent)':'var(--surface)',color:tagFilter!=='all'?'#fff':'var(--text-2)',
+          border:tagFilter!=='all'?'1px solid var(--accent)':'1px solid rgba(0,0,0,.08)',display:'flex',alignItems:'center',gap:4}}>
+          {'# 标签'}{tagFilter!=='all'&&<span style={{background:'rgba(255,255,255,.3)',borderRadius:10,padding:'0 5px',fontSize:10}}>{tagFilter}</span>}
+          <span style={{display:'inline-flex',transform:tagsExpanded?'rotate(180deg)':'rotate(0)',transition:'transform .2s ease'}}><IDown size={12}/></span>
+        </button>
+        <div style={{width:1,height:18,background:'rgba(0,0,0,.08)',margin:'0 4px'}}/>
+        <select value={sort} onChange={e=>setSort(e.target.value)}
+          style={{padding:'4px 10px',border:'1px solid rgba(0,0,0,.08)',borderRadius:20,background:'var(--surface)',fontSize:11.5,color:'var(--text-2)',outline:'none',cursor:'pointer',fontWeight:500}}>
+          <option value="date">{'\u6700\u65b0\u66f4\u65b0'}</option>
+          <option value="rating">{'\u8bc4\u5206\u6700\u9ad8'}</option>
+          <option value="uses">{'\u4f7f\u7528\u6700\u591a'}</option>
+        </select>
+        <div style={{flex:1}}/>
+        <span style={{fontSize:11.5,color:'var(--text-3)',fontWeight:500}}>{filtered.length} {'\u6761\u7ed3\u679c'}</span>
+        <button onClick={()=>{setBatchMode(!batchMode);setSelectedIds&&selectedIds.clear&&null}}
+          style={{padding:'4px 12px',borderRadius:20,fontSize:11.5,fontWeight:500,cursor:'pointer',display:'flex',alignItems:'center',gap:4,
+            background:batchMode?'var(--accent-bg)':'transparent',color:batchMode?'var(--accent)':'var(--text-2)',
+            border:batchMode?'1px solid var(--accent-border)':'1px solid rgba(0,0,0,.08)',transition:'all .15s ease'}}>
+          {batchMode?'\u9000\u51fa\u6279\u91cf':'\u6279\u91cf'}
+        </button>
+      </div>
+
+      {/* Collapsible tag filter */}
+      {tagsExpanded&&(
+        <div className="anim-fade" style={{padding:'8px 20px',borderBottom:'0.5px solid rgba(0,0,0,0.06)',display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',flexShrink:0}}>
+          <button onClick={()=>setTagFilter('all')} style={chipBtn(tagFilter==='all')}>全部</button>
+          {allTags.map(t=>(
+            <button key={t} onClick={()=>setTagFilter(t===tagFilter?'all':t)} style={chipBtn(tagFilter===t)}>#{t}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Batch action bar */}
+      {batchMode&&(
+        <div style={{padding:'8px 20px',background:'var(--accent-bg)',borderBottom:'0.5px solid var(--accent-border)',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+          <button onClick={selectAll} style={{fontSize:12,fontWeight:500,color:'var(--accent)',padding:'4px 10px',borderRadius:20,background:'var(--surface)',border:'1px solid var(--accent-border)',cursor:'pointer'}}>
+            {selectedIds.size===filtered.length&&filtered.length>0?'\u53d6\u6d88\u5168\u9009':'\u5168\u9009'}
+          </button>
+          <span style={{fontSize:12,color:'var(--text-2)'}}>{'\u5df2\u9009'} <strong style={{color:'var(--accent)'}}>{selectedIds.size}</strong> {'\u9879'}</span>
+          <div style={{flex:1}}/>
+          <div style={{position:'relative'}}>
+            <button onClick={()=>setShowMoveMenu(!showMoveMenu)} disabled={selectedIds.size===0}
+              style={{padding:'4px 12px',borderRadius:20,fontSize:12,fontWeight:500,cursor:selectedIds.size===0?'not-allowed':'pointer',
+                background:selectedIds.size===0?'rgba(0,0,0,.03)':'var(--surface)',color:selectedIds.size===0?'var(--text-3)':'var(--accent)',
+                border:selectedIds.size===0?'1px solid rgba(0,0,0,.06)':'1px solid var(--accent-border)',display:'flex',alignItems:'center',gap:4}}>
+              <IFolder size={13}/> {'\u79fb\u52a8\u5230'}
+            </button>
+            {showMoveMenu&&selectedIds.size>0&&(
+              <div className="anim-fade" style={{position:'absolute',top:'100%',right:0,marginTop:4,background:'var(--surface)',borderRadius:10,border:'0.5px solid rgba(0,0,0,0.1)',boxShadow:'var(--shadow-lg)',minWidth:180,zIndex:50,padding:4}}>
+                {allFolders&&allFolders.map(f=>(
+                  <button key={f.name} onClick={()=>{onBatchMoveFolder(f.name);setShowMoveMenu(false)}}
+                    style={{width:'100%',padding:'7px 10px',fontSize:12.5,textAlign:'left',borderRadius:6,display:'flex',alignItems:'center',gap:8,cursor:'pointer',transition:'all .1s ease'}}
+                    onMouseEnter={e=>e.currentTarget.style.background='var(--accent-bg)'}
+                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    <span>{f.icon}</span><span style={{fontWeight:500}}>{f.name}</span>
+                  </button>
+                ))}
+                <button onClick={()=>{onBatchMoveFolder('\u672a\u5206\u7c7b');setShowMoveMenu(false)}}
+                  style={{width:'100%',padding:'7px 10px',fontSize:12.5,textAlign:'left',borderRadius:6,display:'flex',alignItems:'center',gap:8,cursor:'pointer',transition:'all .1s ease',borderTop:'0.5px solid rgba(0,0,0,0.06)',marginTop:2,paddingTop:9}}
+                  onMouseEnter={e=>e.currentTarget.style.background='var(--accent-bg)'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  <span>{'\ud83d\udcc2'}</span><span style={{fontWeight:500}}>{'\u672a\u5206\u7c7b'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+          <button onClick={onBatchDelete} disabled={selectedIds.size===0}
+            style={{padding:'4px 14px',borderRadius:20,fontSize:12,fontWeight:500,cursor:selectedIds.size===0?'not-allowed':'pointer',
+              background:selectedIds.size===0?'rgba(0,0,0,.03)':'var(--rose)',color:selectedIds.size===0?'var(--text-3)':'#fff',border:'none',display:'flex',alignItems:'center',gap:4}}>
+            <ITrash size={13} color={selectedIds.size===0?'var(--text-3)':'#fff'}/> {'\u5220\u9664\u9009\u4e2d'}
+          </button>
+        </div>
+      )}
+
+      {/* Masonry grid */}
+      <div style={{flex:1,overflowY:'auto',padding:'16px 20px',display:'flex',gap:0}}>
+        <div style={{flex:1}}>
+          {filtered.length===0?(
+            <div style={{textAlign:'center',padding:'80px 20px',color:'var(--text-3)'}}>
+              <IGrid size={36} color="var(--text-3)"/>
+              <p style={{marginTop:12,fontSize:13}}>{'\u6ca1\u6709\u627e\u5230\u5339\u914d\u7684 Prompt'}</p>
+            </div>
+          ):(
+            <div style={{columnCount:4,columnGap:12}}>
+              {filtered.map((item,i)=>(
+                <div key={item.id} style={{breakInside:'avoid',marginBottom:12,position:'relative'}}>
+                  {batchMode&&(
+                    <div onClick={(e)=>{e.stopPropagation();toggleBatchSelect(item.id)}}
+                      style={{position:'absolute',top:10,left:10,zIndex:10,width:22,height:22,borderRadius:6,cursor:'pointer',
+                        background:selectedIds.has(item.id)?'var(--accent)':'rgba(255,255,255,.9)',
+                        border:selectedIds.has(item.id)?'none':'2px solid var(--border)',
+                        display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s',boxShadow:'var(--shadow-xs)'}}>
+                      {selectedIds.has(item.id)&&<ICheck size={13} color="#fff" sw={2.5}/>}
+                    </div>
+                  )}
+                  <PCard item={item} i={i} onClick={batchMode?()=>toggleBatchSelect(item.id):setViewingItem}/>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {viewingItem&&!batchMode&&<DetailPanel item={viewingItem} onClose={()=>setViewingItem(null)} onUpdate={onUpdate} onDelete={onDelete} allFolders={allFolders}/>}
+      </div>
+    </div>
+  );
+};
+
+/* ─── Prompt Editor Page ─── */
+
+const Editor=({apiConfig,onOpenSettings})=>{
+  const [selected,setSelected]=useState({subject:null,env:null,style:null,lens:null,params:null});
+  const [customText,setCustomText]=useState({subject:'',env:'',style:'',lens:'',params:''});
+  const [generated,setGenerated]=useState('');
+  const [aiResult,setAiResult]=useState(null);
+  const [optimizing,setOptimizing]=useState(false);
+  const [optimizeError,setOptimizeError]=useState('');
+  const [copiedOpt,setCopiedOpt]=useState(false);
+  const [copiedNeg,setCopiedNeg]=useState(false);
+
+  const categories=[
+    {key:'subject',label:'主体',icon:<ITarget size={15}/>,color:'var(--accent)',items:BLOCKS.subject},
+    {key:'env',label:'环境',icon:<ISun size={15}/>,color:'var(--violet)',items:BLOCKS.env},
+    {key:'style',label:'风格',icon:<IPalette size={15}/>,color:'var(--rose)',items:BLOCKS.style},
+    {key:'lens',label:'镜头',icon:<ICamera size={15}/>,color:'var(--sky)',items:BLOCKS.lens},
+    {key:'params',label:'参数',icon:<ISliders size={15}/>,color:'var(--emerald)',items:BLOCKS.params},
+  ];
+
+  useEffect(()=>{
+    const parts=[];
+    categories.forEach(cat=>{
+      const selId=selected[cat.key];
+      if(!selId)return;
+      if(selId===`custom_${cat.key}`){
+        if(customText[cat.key]?.trim())parts.push(customText[cat.key].trim());
+      } else {
+        const block=cat.items.find(b=>b.id===selId);
+        if(block)parts.push(block.text);
+      }
+    });
+    setGenerated(parts.join(', '));
+    setAiResult(null);
+  },[selected,customText]);
+
+  const handleOptimize=async()=>{
+    if(!generated)return;
+    const hasApi=apiConfig&&apiConfig.apiKey&&apiConfig.endpoint;
+    if(!hasApi){setOptimizeError('请先点击右上角「AI 设置」配置 API Key');return}
+    setOptimizing(true);setOptimizeError('');setAiResult(null);
+    try{
+      const result=await optimizePromptWithAI(generated,apiConfig);
+      setAiResult(result);
+    }catch(e){setOptimizeError(e.message||'AI 优化失败')}
+    finally{setOptimizing(false)}
+  };
+
+  const copyText=(text,setter)=>{navigator.clipboard?.writeText(text);setter(true);setTimeout(()=>setter(false),2000)};
+
+  return(
+    <div className="anim-up" style={{height:'100%',overflowY:'auto',padding:28}}>
+      <div style={{marginBottom:20}}>
+        <h2 style={{fontSize:22,fontWeight:700,letterSpacing:'-.4px'}}>Prompt 编辑器</h2>
+        <p style={{color:'var(--text-3)',fontSize:13,marginTop:3,fontWeight:400}}>像搭积木一样组合 Prompt 模块，或自由输入自定义描述</p>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
+        {/* Left: Block selectors */}
+        <div>
+          {categories.map((cat,ci)=>{
+            const isCustom=selected[cat.key]===`custom_${cat.key}`;
+            return(
+            <div key={cat.key} className="anim-up" style={{animationDelay:`${ci*0.05}s`,marginBottom:18}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                <div style={{width:26,height:26,borderRadius:6,background:cat.color+'14',display:'flex',alignItems:'center',justifyContent:'center',color:cat.color}}>{cat.icon}</div>
+                <span style={{fontSize:13.5,fontWeight:600,letterSpacing:'-.01em'}}>{cat.label}</span>
+                {selected[cat.key]&&<span style={{fontSize:10,color:'var(--emerald)',fontWeight:500,marginLeft:2,display:'flex',alignItems:'center',gap:3}}><ICheck size={11}/> 已选择</span>}
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                {cat.items.map(block=>{
+                  const isSelected=selected[cat.key]===block.id;
+                  return(
+                    <button key={block.id} onClick={()=>setSelected(prev=>({...prev,[cat.key]:isSelected?null:block.id}))}
+                      style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',borderRadius:8,textAlign:'left',fontSize:13,transition:'all .15s ease',
+                        background:isSelected?cat.color+'0A':'var(--surface)',
+                        border:isSelected?`1.5px solid ${cat.color}40`:'1px solid rgba(0,0,0,0.06)',
+                        fontWeight:isSelected?500:400,color:isSelected?cat.color:'var(--text)',letterSpacing:'-.01em'}}
+                      onMouseEnter={e=>{if(!isSelected)e.currentTarget.style.borderColor='rgba(0,0,0,.12)'}}
+                      onMouseLeave={e=>{if(!isSelected)e.currentTarget.style.borderColor='rgba(0,0,0,0.06)'}}>
+                      <span style={{fontSize:16}}>{block.emoji}</span>
+                      <span style={{flex:1}}>{block.text}</span>
+                      {isSelected&&<div style={{width:18,height:18,borderRadius:'50%',background:cat.color,display:'flex',alignItems:'center',justifyContent:'center'}}><ICheck size={11} color="#fff" sw={2.5}/></div>}
+                    </button>
+                  );
+                })}
+                {/* Custom input option */}
+                <button onClick={()=>setSelected(prev=>({...prev,[cat.key]:isCustom?null:`custom_${cat.key}`}))}
+                  style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',borderRadius:8,textAlign:'left',fontSize:13,transition:'all .15s ease',
+                    background:isCustom?cat.color+'0A':'var(--surface)',
+                    border:isCustom?`1.5px solid ${cat.color}40`:'1px dashed rgba(0,0,0,0.12)',
+                    fontWeight:isCustom?500:400,color:isCustom?cat.color:'var(--text-3)',letterSpacing:'-.01em'}}
+                  onMouseEnter={e=>{if(!isCustom)e.currentTarget.style.borderColor='var(--accent-border)'}}
+                  onMouseLeave={e=>{if(!isCustom)e.currentTarget.style.borderColor='rgba(0,0,0,0.12)'}}>
+                  <span style={{fontSize:16}}>✏️</span>
+                  <span style={{flex:1}}>自定义输入...</span>
+                  {isCustom&&<div style={{width:18,height:18,borderRadius:'50%',background:cat.color,display:'flex',alignItems:'center',justifyContent:'center'}}><ICheck size={11} color="#fff" sw={2.5}/></div>}
+                </button>
+                {isCustom&&(
+                  <input value={customText[cat.key]||''}
+                    onChange={e=>setCustomText(prev=>({...prev,[cat.key]:e.target.value}))}
+                    placeholder={`输入自定义${cat.label}描述...`}
+                    autoFocus
+                    style={{padding:'8px 12px',borderRadius:8,border:`1.5px solid ${cat.color}50`,background:cat.color+'04',fontSize:13,
+                      color:'var(--text)',outline:'none',fontFamily:'inherit',marginTop:2,letterSpacing:'-.01em'}}
+                    onFocus={e=>e.target.style.boxShadow=`0 0 0 3px ${cat.color}12`}
+                    onBlur={e=>e.target.style.boxShadow='none'}/>
+                )}
+              </div>
+              {ci<categories.length-1&&(
+                <div style={{display:'flex',justifyContent:'center',margin:'12px 0'}}>
+                  <div style={{width:2,height:20,background:'var(--border-light)',borderRadius:1}}/>
+                </div>
+              )}
+            </div>
+            );
+          })}
+        </div>
+
+        {/* Right: Preview */}
+        <div>
+          <div className="card" style={{padding:20,position:'sticky',top:0,borderRadius:14}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+              <ISparkle size={16} color="var(--accent)"/>
+              <span style={{fontSize:15,fontWeight:600,letterSpacing:'-.02em'}}>组合预览</span>
+            </div>
+
+            {/* Module chain */}
+            <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:18}}>
+              {categories.map((cat,i)=>{
+                const selId=selected[cat.key];
+                const isCustom=selId===`custom_${cat.key}`;
+                const block=selId&&!isCustom?cat.items.find(b=>b.id===selId):null;
+                const hasContent=block||(isCustom&&customText[cat.key]?.trim());
+                return(
+                  <div key={cat.key} style={{display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{width:22,height:22,borderRadius:'50%',background:hasContent?cat.color+'18':'var(--surface-alt)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,flexShrink:0,color:hasContent?cat.color:'var(--text-3)',fontWeight:600}}>{i+1}</div>
+                    <div style={{padding:'6px 12px',borderRadius:6,flex:1,fontSize:12.5,
+                      background:hasContent?cat.color+'06':'var(--bg)',border:`1px solid ${hasContent?cat.color+'20':'rgba(0,0,0,0.04)'}`,
+                      color:hasContent?'var(--text)':'var(--text-3)',fontWeight:hasContent?500:400,letterSpacing:'-.01em'}}>
+                      {isCustom&&customText[cat.key]?.trim()?`✏️ ${customText[cat.key].trim()}`:block?`${block.emoji} ${block.text}`:`选择${cat.label}模块...`}
+                    </div>
+                    {i<categories.length-1&&<span style={{color:'var(--text-3)',fontSize:13,flexShrink:0,opacity:.5}}>+</span>}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Generated Prompt (raw combination) */}
+            <div style={{marginBottom:14}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                <div style={{fontSize:11,fontWeight:600,color:'var(--text-3)',letterSpacing:'.1px'}}>基础组合</div>
+                <button onClick={()=>generated&&copyText(generated,setCopiedOpt)} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:copiedOpt?'var(--emerald)':'var(--accent)',fontWeight:500}}>
+                  {copiedOpt?<ICheck size={12}/>:<ICopy size={12}/>} {copiedOpt?'已复制':'复制'}
+                </button>
+              </div>
+              <div style={{padding:12,background:'var(--bg)',borderRadius:8,fontSize:12.5,lineHeight:1.7,minHeight:50,
+                color:generated?'var(--text-2)':'var(--text-3)',border:'1px solid rgba(0,0,0,0.04)'}}>
+                {generated||'在左侧选择模块或输入自定义描述...'}
+              </div>
+            </div>
+
+            {/* AI Optimize Button */}
+            <div style={{marginBottom:14}}>
+              <button onClick={handleOptimize} disabled={!generated||optimizing}
+                style={{width:'100%',padding:'10px 18px',borderRadius:8,fontSize:13,fontWeight:600,cursor:!generated||optimizing?'not-allowed':'pointer',transition:'all .2s ease',
+                  background:!generated?'rgba(0,0,0,.04)':optimizing?'linear-gradient(135deg,#007AFF,#5856D6)':'linear-gradient(135deg,#007AFF,#5856D6)',
+                  color:!generated?'var(--text-3)':'#fff',border:'none',display:'flex',alignItems:'center',justifyContent:'center',gap:7,
+                  boxShadow:!generated?'none':'0 2px 8px rgba(0,122,255,.25)',
+                  transform:optimizing?'scale(.98)':'none',letterSpacing:'-.01em'}}
+                onMouseEnter={e=>{if(generated&&!optimizing)e.currentTarget.style.boxShadow='0 4px 12px rgba(0,122,255,.3)'}}
+                onMouseLeave={e=>{if(!optimizing)e.currentTarget.style.boxShadow=generated?'0 2px 8px rgba(0,122,255,.25)':'none'}}>
+                {optimizing?(
+                  <><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{animation:'spin 1s linear infinite'}}>
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                  </svg> AI 正在优化...</>
+                ):(
+                  <><ISparkle size={15} color="#fff" sw={2}/> AI 智能优化 Prompt</>
+                )}
+              </button>
+              {!apiConfig?.apiKey&&(
+                <button onClick={onOpenSettings} style={{width:'100%',marginTop:4,fontSize:11,color:'var(--accent)',fontWeight:500,padding:'3px 0',background:'none',border:'none',cursor:'pointer'}}>
+                  ⚙️ 需要先配置 AI API Key
+                </button>
+              )}
+              {optimizeError&&(
+                <div style={{marginTop:6,padding:'7px 10px',background:'rgba(255,59,48,.06)',borderRadius:6,fontSize:12,color:'var(--rose)',border:'1px solid rgba(255,59,48,.12)',display:'flex',alignItems:'center',gap:5}}>
+                  <span>⚠️</span>{optimizeError}
+                </div>
+              )}
+            </div>
+
+            {/* AI Optimized Result */}
+            {aiResult&&(
+              <div className="anim-up" style={{marginBottom:14}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                  <div style={{fontSize:11,fontWeight:600,color:'var(--accent)',display:'flex',alignItems:'center',gap:4,letterSpacing:'.1px'}}>
+                    <ISparkle size={12}/> AI 优化结果
+                  </div>
+                  <button onClick={()=>copyText(aiResult.optimized,setCopiedOpt)} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:copiedOpt?'var(--emerald)':'var(--accent)',fontWeight:500}}>
+                    {copiedOpt?<ICheck size={12}/>:<ICopy size={12}/>} {copiedOpt?'已复制':'复制'}
+                  </button>
+                </div>
+                <div style={{padding:14,background:'var(--accent-bg)',borderRadius:10,fontSize:13,lineHeight:1.7,
+                  color:'var(--text)',border:'1px solid var(--accent-border)'}}>
+                  {aiResult.optimized}
+                </div>
+
+                {aiResult.negative&&(
+                  <div style={{marginTop:10}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
+                      <div style={{fontSize:11,fontWeight:600,color:'var(--text-3)',letterSpacing:'.1px'}}>负向提示词</div>
+                      <button onClick={()=>copyText(aiResult.negative,setCopiedNeg)} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:copiedNeg?'var(--emerald)':'var(--accent)',fontWeight:500}}>
+                        {copiedNeg?<ICheck size={12}/>:<ICopy size={12}/>} {copiedNeg?'已复制':'复制'}
+                      </button>
+                    </div>
+                    <div style={{padding:10,background:'rgba(255,59,48,.04)',borderRadius:8,fontSize:12,lineHeight:1.6,color:'var(--rose)',border:'1px solid rgba(255,59,48,.08)'}}>
+                      {aiResult.negative}
+                    </div>
+                  </div>
+                )}
+
+                {aiResult.tips&&(
+                  <div style={{marginTop:8,padding:'8px 12px',background:'rgba(255,149,0,.06)',borderRadius:8,border:'1px solid rgba(255,149,0,.15)'}}>
+                    <div style={{fontSize:11.5,color:'#B25000',lineHeight:1.5}}>
+                      💡 {aiResult.tips}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn-primary" style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}
+                onClick={()=>{const text=aiResult?.optimized||generated;if(text)navigator.clipboard?.writeText(text)}}>
+                <ICopy size={14} color="#fff"/> 复制{aiResult?'优化后':'基础'} Prompt
+              </button>
+              <button className="btn-ghost" style={{display:'flex',alignItems:'center',gap:5}}
+                onClick={()=>{setSelected({subject:null,env:null,style:null,lens:null,params:null});setCustomText({subject:'',env:'',style:'',lens:'',params:''});setAiResult(null)}}>
+                <IRefresh size={14}/> 重置
+              </button>
+            </div>
+
+            {/* Quick tips */}
+            <div style={{marginTop:16,padding:12,background:'rgba(255,149,0,.04)',borderRadius:8,border:'1px solid rgba(255,149,0,.1)'}}>
+              <div style={{fontSize:11,fontWeight:600,color:'#B25000',marginBottom:3}}>💡 使用技巧</div>
+              <div style={{fontSize:11.5,color:'#8C4400',lineHeight:1.6}}>
+                模块顺序会影响生成效果。一般建议：主体 → 环境 → 风格 → 镜头 → 参数。
+                越重要的描述放在越前面。也可以点击"自定义输入"自由填写描述内容。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Recycle Bin Page ─── */
+const RecycleBin=({items,onRestore,onPermanentDelete,onEmptyTrash})=>{
+  const [confirmEmpty,setConfirmEmpty]=useState(false);
+  const daysLeft=(deletedAt)=>{const d=7-Math.floor((Date.now()-deletedAt)/(24*60*60*1000));return Math.max(0,d)};
+
+  if(items.length===0)return(
+    <div className="anim-up" style={{height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:40}}>
+      <div style={{width:64,height:64,borderRadius:16,background:'var(--surface-alt)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:16}}>
+        <ITrash size={28} color="var(--text-3)"/>
+      </div>
+      <h2 style={{fontSize:17,fontWeight:600,marginBottom:4,color:'var(--text-2)',letterSpacing:'-.02em'}}>回收站是空的</h2>
+      <p style={{fontSize:13,color:'var(--text-3)',textAlign:'center',maxWidth:280}}>删除的 Prompt 资产会在这里保留 7 天，之后自动彻底清除。</p>
+    </div>
+  );
+
+  return(
+    <div className="anim-up" style={{height:'100%',overflowY:'auto',padding:28}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <h2 style={{fontSize:22,fontWeight:700,letterSpacing:'-.4px'}}>回收站</h2>
+          <p style={{color:'var(--text-3)',fontSize:13,marginTop:3}}>已删除的项目将在 7 天后自动彻底清除</p>
+        </div>
+        {confirmEmpty?(
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontSize:12,color:'var(--rose)',fontWeight:600}}>确认清空？</span>
+            <button onClick={()=>{onEmptyTrash();setConfirmEmpty(false)}} style={{padding:'6px 14px',borderRadius:8,background:'#EF4444',color:'#fff',border:'none',fontSize:12,fontWeight:600,cursor:'pointer'}}>确认</button>
+            <button onClick={()=>setConfirmEmpty(false)} className="btn-ghost" style={{padding:'6px 14px',fontSize:12}}>取消</button>
+          </div>
+        ):(
+          <button onClick={()=>setConfirmEmpty(true)} style={{padding:'6px 14px',borderRadius:6,fontSize:12,fontWeight:500,color:'var(--rose)',background:'rgba(255,59,48,.06)',border:'1px solid rgba(255,59,48,.15)',cursor:'pointer'}}>
+            清空回收站
+          </button>
+        )}
+      </div>
+
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {items.map((item,i)=>{
+          const plat=PLATFORMS.find(p=>p.id===item.platform);
+          const days=daysLeft(item.deletedAt);
+          return(
+            <div key={item.id} className="card anim-up" style={{animationDelay:`${i*0.03}s`,display:'flex',alignItems:'center',gap:14,padding:14,borderRadius:12}}>
+              <img src={item.thumbnail||phImg(item.seed,80,80)} alt="" style={{width:56,height:56,borderRadius:8,objectFit:'cover',flexShrink:0,opacity:.7}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-.01em'}}>{item.title}</div>
+                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:3}}>
+                  <span className="tag" style={{background:plat?.bg,color:plat?.color,fontSize:10}}>{plat?.name}</span>
+                  <span style={{fontSize:11,color:days<=2?'var(--rose)':'var(--text-3)',fontWeight:days<=2?500:400}}>
+                    {days>0?`${days} 天后彻底删除`:'即将清除'}
+                  </span>
+                </div>
+              </div>
+              <div style={{display:'flex',gap:6,flexShrink:0}}>
+                <button onClick={()=>onRestore(item.id)} style={{padding:'5px 12px',borderRadius:6,fontSize:12,fontWeight:500,cursor:'pointer',background:'var(--accent-bg)',color:'var(--accent)',border:'1px solid var(--accent-border)',display:'flex',alignItems:'center',gap:4}}>
+                  <IRefresh size={12}/> 恢复
+                </button>
+                <button onClick={()=>onPermanentDelete(item.id)} style={{padding:'5px 8px',borderRadius:6,fontSize:12,cursor:'pointer',background:'transparent',color:'var(--rose)',border:'1px solid rgba(255,59,48,.15)'}} title="彻底删除">
+                  <ITrash size={12}/>
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/* ─── Folder Dialog (Create / Edit) ─── */
+const FOLDER_ICONS=['💡','📷','🎨','✏️','👤','📸','🏛️','🏮','🎮','🎬','🎵','📐','🌿','🔥','⭐','🌈','🎯','💎','🦋','🍀','🌸','🏔️','🚀','🎭'];
+const FolderDialog=({mode,editFolder,existingNames,onSave,onClose})=>{
+  const [name,setEditName]=useState(editFolder?editFolder.name:'');
+  const [icon,setEditIcon]=useState(editFolder?editFolder.icon:'📁');
+  const [error,setError]=useState('');
+  const handleSubmit=()=>{
+    const trimmed=name.trim();
+    if(!trimmed){setError('请输入收藏夹名称');return}
+    if(mode==='create'&&existingNames.includes(trimmed)){setError('该名称已存在');return}
+    if(mode==='edit'&&trimmed!==editFolder.name&&existingNames.includes(trimmed)){setError('该名称已存在');return}
+    onSave({name:trimmed,icon});
+  };
+  return(
+    <div className="anim-fade" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.3)',backdropFilter:'blur(16px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300}} onClick={onClose}>
+      <div className="anim-scale" onClick={e=>e.stopPropagation()} style={{width:400,background:'var(--surface)',borderRadius:14,boxShadow:'var(--shadow-lg)',overflow:'hidden'}}>
+        <div style={{padding:'18px 22px 12px',display:'flex',alignItems:'center',borderBottom:'0.5px solid rgba(0,0,0,0.06)'}}>
+          <div><h3 style={{fontSize:16,fontWeight:600,letterSpacing:'-.02em'}}>{mode==='create'?'新建收藏夹':'编辑收藏夹'}</h3></div>
+          <div style={{flex:1}}/>
+          <button onClick={onClose} style={{color:'var(--text-3)',padding:4,borderRadius:6,display:'flex',transition:'all .15s'}}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,0,0,.04)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}><IX size={17}/></button>
+        </div>
+        <div style={{padding:'18px 22px'}}>
+          <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:6,letterSpacing:'.1px'}}>图标</label>
+          <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:16}}>
+            {FOLDER_ICONS.map(ic=>(
+              <button key={ic} onClick={()=>setEditIcon(ic)}
+                style={{width:34,height:34,borderRadius:6,fontSize:17,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .15s ease',
+                  background:icon===ic?'var(--accent-bg)':'var(--bg)',
+                  border:icon===ic?'1.5px solid var(--accent)':'1px solid rgba(0,0,0,0.06)'}}>
+                {ic}
+              </button>
+            ))}
+          </div>
+          <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:6,letterSpacing:'.1px'}}>名称</label>
+          <input value={name} onChange={e=>{setEditName(e.target.value);setError('')}} autoFocus
+            placeholder="输入收藏夹名称..."
+            style={{width:'100%',padding:'8px 12px',border:error?'1px solid var(--rose)':'1px solid rgba(0,0,0,.1)',borderRadius:8,background:'var(--bg)',outline:'none',fontSize:13,color:'var(--text)',fontFamily:'inherit',transition:'border-color .2s ease'}}
+            onFocus={e=>{if(!error)e.target.style.borderColor='var(--accent)'}}
+            onBlur={e=>{if(!error)e.target.style.borderColor='rgba(0,0,0,.1)'}}
+            onKeyDown={e=>{if(e.key==='Enter')handleSubmit()}}/>
+          {error&&<p style={{fontSize:11,color:'var(--rose)',marginTop:4}}>{error}</p>}
+        </div>
+        <div style={{padding:'12px 22px',borderTop:'0.5px solid rgba(0,0,0,0.06)',display:'flex',gap:8,justifyContent:'flex-end'}}>
+          <button onClick={onClose} className="btn-ghost">取消</button>
+          <button onClick={handleSubmit} className="btn-primary" style={{minWidth:80,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+            {mode==='create'?<><IPlus size={14}/> 创建</>:<><ICheck size={14}/> 保存</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Main App ─── */
+const App=()=>{
+  const [page,setPage]=useState('dashboard');
+  const [items,setItems]=useState(()=>{
+    const initialized=localStorage.getItem('promptos_initialized');
+    if(!initialized){
+      localStorage.setItem('promptos_initialized','1');
+      return MOCK_ITEMS;
+    }
+    return getUserItems();
+  });
+  const [trash,setTrash]=useState(()=>{try{const s=localStorage.getItem('promptos_trash');return s?JSON.parse(s):[];}catch{return[]}});
+  const [q,setQ]=useState('');
+  const [showUpload,setShowUpload]=useState(false);
+  const [viewingItem,setViewingItem]=useState(null);
+  const [apiConfig,setApiConfig]=useState(()=>getApiConfig());
+  const [showSettings,setShowSettings]=useState(false);
+  const [folderFilter,setFolderFilter]=useState(null);
+  const [batchMode,setBatchMode]=useState(false);
+  const [selectedIds,setSelectedIds]=useState(new Set());
+  const [customFolders,setCustomFolders]=useState(()=>{try{const s=localStorage.getItem('promptos_custom_folders');return s?JSON.parse(s):[];}catch{return[]}});
+  const [folderDialog,setFolderDialog]=useState(null); // null | {mode:'create'} | {mode:'edit',folder:{name,icon}}
+
+  // persist user items to localStorage whenever they change
+  useEffect(()=>{
+    const userItems=items.filter(i=>i.user);
+    saveUserItems(userItems);
+  },[items]);
+
+  // persist trash to localStorage
+  useEffect(()=>{
+    try{localStorage.setItem('promptos_trash',JSON.stringify(trash))}catch(e){}
+  },[trash]);
+
+  // persist custom folders
+  useEffect(()=>{
+    try{localStorage.setItem('promptos_custom_folders',JSON.stringify(customFolders))}catch(e){}
+  },[customFolders]);
+
+  // auto-clean trash items older than 7 days
+  useEffect(()=>{
+    const now=Date.now();
+    const cleaned=trash.filter(i=>now-i.deletedAt<7*24*60*60*1000);
+    if(cleaned.length!==trash.length)setTrash(cleaned);
+  },[]);
+
+  const filtered=useMemo(()=>{
+    let r=[...items];
+    if(folderFilter)r=r.filter(i=>i.folder===folderFilter);
+    if(q.trim()){
+      const lq=q.toLowerCase();
+      r=r.filter(i=>
+        i.title.toLowerCase().includes(lq)||
+        i.prompt.toLowerCase().includes(lq)||
+        i.tags.some(t=>t.toLowerCase().includes(lq))||
+        i.note.toLowerCase().includes(lq)
+      );
+    }
+    return r;
+  },[items,q,folderFilter]);
+
+  const handleSave=(newItem)=>{
+    setItems(prev=>[newItem,...prev]);
+  };
+
+  const handleUpdate=(updatedItem)=>{
+    setItems(prev=>prev.map(i=>i.id===updatedItem.id?updatedItem:i));
+    setViewingItem(updatedItem);
+  };
+
+  const handleDelete=(id)=>{
+    const item=items.find(i=>i.id===id);
+    if(item){
+      setTrash(prev=>[...prev,{...item,deletedAt:Date.now()}]);
+      setItems(prev=>prev.filter(i=>i.id!==id));
+      if(viewingItem&&viewingItem.id===id)setViewingItem(null);
+    }
+  };
+
+  const handleBatchDelete=(ids)=>{
+    const toDelete=items.filter(i=>ids.has(i.id));
+    const now=Date.now();
+    setTrash(prev=>[...prev,...toDelete.map(i=>({...i,deletedAt:now}))]);
+    setItems(prev=>prev.filter(i=>!ids.has(i.id)));
+    setSelectedIds(new Set());
+    setBatchMode(false);
+  };
+
+  const handleUpdateFolder=(itemId,newFolder)=>{
+    setItems(prev=>prev.map(i=>i.id===itemId?{...i,folder:newFolder}:i));
+    if(viewingItem&&viewingItem.id===itemId)setViewingItem({...viewingItem,folder:newFolder});
+  };
+
+  const handleBatchMoveFolder=(folderName)=>{
+    setItems(prev=>prev.map(i=>selectedIds.has(i.id)?{...i,folder:folderName}:i));
+    setSelectedIds(new Set());
+    setBatchMode(false);
+  };
+
+  const handleRestore=(id)=>{
+    const item=trash.find(i=>i.id===id);
+    if(item){
+      const {deletedAt,...rest}=item;
+      setItems(prev=>[rest,...prev]);
+      setTrash(prev=>prev.filter(i=>i.id!==id));
+    }
+  };
+
+  const handlePermanentDelete=(id)=>{
+    setTrash(prev=>prev.filter(i=>i.id!==id));
+  };
+
+  const handleEmptyTrash=()=>{
+    setTrash([]);
+  };
+
+  const handleCreateFolder=(folder)=>{
+    const allNames=[...FOLDERS,...customFolders].map(f=>f.name);
+    if(allNames.includes(folder.name))return;
+    setCustomFolders(prev=>[...prev,folder]);
+  };
+
+  const handleRenameFolder=(oldName,newData)=>{
+    const allNames=[...FOLDERS,...customFolders].map(f=>f.name);
+    if(newData.name!==oldName&&allNames.includes(newData.name))return;
+    const isDefault=FOLDERS.some(f=>f.name===oldName);
+    if(isDefault){
+      if(newData.name!==oldName){
+        setItems(prev=>prev.map(i=>i.folder===oldName?{...i,folder:newData.name}:i));
+        setTrash(prev=>prev.map(i=>i.folder===oldName?{...i,folder:newData.name}:i));
+      }
+      setCustomFolders(prev=>{
+        const existing=prev.find(f=>f._overrides===oldName);
+        if(existing)return prev.map(f=>f._overrides===oldName?{...f,name:newData.name,icon:newData.icon}:f);
+        return [...prev,{name:newData.name,icon:newData.icon,_overrides:oldName}];
+      });
+    } else {
+      if(newData.name!==oldName){
+        setItems(prev=>prev.map(i=>i.folder===oldName?{...i,folder:newData.name}:i));
+        setTrash(prev=>prev.map(i=>i.folder===oldName?{...i,folder:newData.name}:i));
+      }
+      setCustomFolders(prev=>prev.map(f=>f.name===oldName?{...f,name:newData.name,icon:newData.icon}:f));
+    }
+    if(folderFilter===oldName)setFolderFilter(newData.name);
+  };
+
+  const handleDeleteFolder=(name)=>{
+    const isDefault=FOLDERS.some(f=>f.name===name);
+    if(isDefault){
+      setCustomFolders(prev=>[...prev.filter(f=>f._overrides!==name),{name,icon:'🗑️',_hidden:true,_overrides:name}]);
+    } else {
+      setCustomFolders(prev=>prev.filter(f=>f.name!==name));
+    }
+    setItems(prev=>prev.map(i=>i.folder===name?{...i,folder:'未分类'}:i));
+    if(folderFilter===name)setFolderFilter(null);
+  };
+
+  const handleApiConfigChange=(cfg)=>{
+    setApiConfig(cfg);
+    saveApiConfig(cfg);
+  };
+
+  const handleFolderClick=(folder)=>{
+    setFolderFilter(folder);
+  };
+
+  const dynamicFolders=useMemo(()=>{
+    const hiddenCustoms=customFolders.filter(f=>f._hidden).map(f=>f._overrides||f.name);
+    const overrides={};
+    customFolders.filter(f=>f._overrides&&!f._hidden).forEach(f=>{overrides[f._overrides]={name:f.name,icon:f.icon}});
+    const defaults=FOLDERS.filter(f=>!hiddenCustoms.includes(f.name)).map(f=>{
+      const ov=overrides[f.name];
+      const name=ov?ov.name:f.name;const icon=ov?ov.icon:f.icon;
+      return {name,icon,count:items.filter(i=>i.folder===name).length};
+    });
+    const customs=customFolders.filter(f=>!f._hidden&&!f._overrides).map(f=>({...f,count:items.filter(i=>i.folder===f.name).length}));
+    return [...defaults,...customs];
+  },[items,customFolders]);
+
+  const toggleBatchSelect=(id)=>{
+    setSelectedIds(prev=>{const n=new Set(prev);if(n.has(id))n.delete(id);else n.add(id);return n});
+  };
+
+  const selectAll=()=>{
+    if(selectedIds.size===filtered.length)setSelectedIds(new Set());
+    else setSelectedIds(new Set(filtered.map(i=>i.id)));
+  };
+
+  return(
+    <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
+      <Sidebar page={page} setPage={setPage} folders={dynamicFolders} folderFilter={folderFilter} onFolderClick={handleFolderClick} trashCount={trash.length} itemCount={items.length}
+        onCreateFolder={()=>setFolderDialog({mode:'create'})} onEditFolder={(f)=>setFolderDialog({mode:'edit',folder:f})} onDeleteFolder={handleDeleteFolder}/>
+      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <TopBar q={q} setQ={setQ} onUpload={()=>setShowUpload(true)} page={page} setPage={setPage} onOpenSettings={()=>setShowSettings(true)} items={items} setViewingItem={setViewingItem}/>
+        <div style={{flex:1,overflow:'hidden'}}>
+          {page==='dashboard'&&<Dashboard items={filtered} folders={dynamicFolders} setPage={setPage} setViewingItem={setViewingItem} setFolderFilter={setFolderFilter} onUpload={()=>setShowUpload(true)}/>}
+          {page==='library'&&<Library items={filtered} viewingItem={viewingItem} setViewingItem={setViewingItem} onUpdate={handleUpdate} onDelete={handleDelete} folderFilter={folderFilter} setFolderFilter={setFolderFilter} batchMode={batchMode} setBatchMode={setBatchMode} selectedIds={selectedIds} toggleBatchSelect={toggleBatchSelect} selectAll={selectAll} onBatchDelete={()=>handleBatchDelete(selectedIds)} allFolders={dynamicFolders} onBatchMoveFolder={handleBatchMoveFolder}/>}
+          {page==='editor'&&<Editor apiConfig={apiConfig} onOpenSettings={()=>setShowSettings(true)}/>}
+          {page==='recycle'&&<RecycleBin items={trash} onRestore={handleRestore} onPermanentDelete={handlePermanentDelete} onEmptyTrash={handleEmptyTrash}/>}
+        </div>
+      </div>
+      {showUpload&&<AnalysisOverlay onClose={()=>setShowUpload(false)} onSave={handleSave} apiConfig={apiConfig} onOpenSettings={()=>setShowSettings(true)}/>}
+      {showSettings&&<SettingsModal onClose={()=>setShowSettings(false)} apiConfig={apiConfig} setApiConfig={handleApiConfigChange}/>}
+      {folderDialog&&<FolderDialog mode={folderDialog.mode} editFolder={folderDialog.folder} existingNames={dynamicFolders.map(f=>f.name)}
+        onSave={(data)=>{if(folderDialog.mode==='create')handleCreateFolder(data);else handleRenameFolder(folderDialog.folder.name,data);setFolderDialog(null)}}
+        onClose={()=>setFolderDialog(null)}/>}
+    </div>
+  );
+};
+
+ReactDOM.render(<App/>,document.getElementById('root'));
+</script>
+</body>
+</html>
