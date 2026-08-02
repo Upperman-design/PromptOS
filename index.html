@@ -125,48 +125,7 @@ const PLATFORMS=[
 {id:'tongyi',name:'通义万相',color:'#FF6A00',bg:'#FFF7ED'},
 ];
 
-const MOCK_ITEMS=[
-  {id:1,title:'赛博朋克城市夜景',prompt:'一座未来赛博朋克城市夜景，霓虹灯光倒映在湿润的鹅卵石街道上，高耸入云的摩天大楼挂着全息广告牌，远处有飞行器消失在低矮的云层中，电影级光影效果，体积光雾气弥漫，超精细画面，8K超高清分辨率，宽银幕16:9画幅比例',neg:'模糊、低画质、水印、文字',platform:'jimeng',params:{画幅:'16:9',画质:'超高清',风格:'写实'},tags:['赛博朋克','概念艺术','电影感','城市'],rating:5,uses:12,note:'即梦平台直接输入中文即可，效果非常接近描述。适合概念设计项目背景图，体积雾和霓虹灯光的组合层次感极佳。',date:'2026-07-10',folder:'概念设计',seed:0,
-    analysis:{subject:'未来城市',character:'无',env:'雨夜街道',style:'赛博朋克',color:'蓝紫色调',comp:'中心构图',lens:'低角度仰拍',light:'霓虹灯光反射',models:['即梦 Dreamina','ChatGPT'],suggestedParams:['16:9宽幅','超高清画质','写实风格']}},
-  {id:2,title:'极简产品摄影·白底',prompt:'一张极简风格的产品摄影图，纯白色背景，柔和的漫射灯光，产品底部有淡淡的自然投影，干净利落的现代构图，商业广告级品质，高级质感，画面简洁大方',neg:'杂乱背景、花哨配色、业余感',platform:'chatgpt',params:{画幅:'1:1',画质:'高清',风格:'商业摄影'},tags:['极简','产品设计','商业摄影'],rating:4,uses:28,note:'ChatGPT图片生成对中文产品描述理解很好。替换主体描述词即可复用，白底效果比纯白更有质感，适合电商场景。',date:'2026-07-09',folder:'产品摄影',seed:1,
-    analysis:{subject:'产品主体',character:'—',env:'白色影棚',style:'商业摄影',color:'纯白/中性灰',comp:'居中对称',lens:'标准50mm镜头',light:'柔和漫射光',models:['ChatGPT','即梦 Dreamina'],suggestedParams:['1:1方图','高清画质','商业摄影风格']}},
-  {id:3,title:'水彩花园插画',prompt:'一幅精致的水彩插画，描绘一座迷人的英式花园，柔和的笔触色彩相互晕染，玫瑰花瓣上挂着晨露，远处有一座童话般的小木屋，植物图鉴风格，绘本质感，温馨治愈的氛围',neg:'数码感、锐利边缘、荧光色、写实照片',platform:'jimeng',params:{画幅:'3:4',画质:'高清',风格:'水彩插画'},tags:['水彩','插画','复古','植物'],rating:4,uses:6,note:'即梦的水彩风格选项效果很好。描述中强调"晕染"和"绘本质感"是关键。',date:'2026-07-08',folder:'插画素材',seed:2,
-    analysis:{subject:'英式花园',character:'—',env:'花园与小屋',style:'水彩插画',color:'柔和粉彩色调',comp:'层次递进',lens:'—',light:'晨光柔和',models:['即梦 Dreamina','ChatGPT'],suggestedParams:['3:4竖幅','水彩风格','绘本质感']}},
-  {id:4,title:'3D等距小房间',prompt:'一个3D等距视角的小房间，温馨的日式书房，暖色调木质家具，书架上摆满了书，台灯投射出一圈温暖的光，微缩模型风格，移轴摄影效果，游戏资产品质，精细的家具细节',neg:'写实照片、暗色调、恐怖元素',platform:'chatgpt',params:{画幅:'1:1',画质:'高清',风格:'3D渲染'},tags:['3D渲染','建筑','极简','游戏'],rating:5,uses:15,note:'ChatGPT对等距视角的理解很好。"微缩模型风格"和"移轴效果"是关键描述词。适合做UI插图和游戏资产。',date:'2026-07-07',folder:'UI素材',seed:3,
-    analysis:{subject:'日式书房',character:'—',env:'室内空间',style:'3D等距',color:'暖木色调',comp:'等距45°视角',lens:'—',light:'台灯暖光源',models:['ChatGPT','即梦 Dreamina'],suggestedParams:['1:1方图','3D渲染风格','精细细节']}},
-  {id:5,title:'复古胶片人像',prompt:'一张复古胶片风格的人像摄影，模拟35mm柯达Portra 400胶卷质感，黄金时刻的光线透过窗帘洒在一位穿白色亚麻裙的年轻女性身上，可见的胶片颗粒感，模拟胶片的温暖色调，高光处略微过曝，时尚杂志编辑风格',neg:'数码感、锐利、HDR效果、现代感',platform:'jimeng',params:{画幅:'3:4',画质:'高清',风格:'胶片摄影'},tags:['复古','摄影','人像','胶片'],rating:5,uses:9,note:'即梦的"胶片"风格选项配合Portra 400关键词效果很好。强调"过曝高光"和"胶片颗粒"是关键。',date:'2026-07-06',folder:'摄影参考',seed:5,
-    analysis:{subject:'年轻女性',character:'穿亚麻裙的女性',env:'窗边自然光',style:'胶片摄影',color:'暖黄色调/胶片色彩',comp:'三分法构图',lens:'35mm胶片镜头',light:'黄金时刻自然光',models:['即梦 Dreamina','通义万相'],suggestedParams:['3:4竖幅','胶片风格','高清画质']}},
-  {id:6,title:'流体渐变抽象背景',prompt:'一幅抽象流体渐变作品，液态大理石纹理带着虹彩光泽，全息色彩在紫色和青色之间流动变幻，光滑流畅的有机形态，4K壁纸级品质，当代数字艺术风格，梦幻而高级',neg:'文字、标志、锐利边缘、几何图案',platform:'tongyi',params:{画幅:'16:9',画质:'超高清',风格:'艺术绘画'},tags:['抽象','极简','UI设计','背景'],rating:4,uses:20,note:'通义万相对抽象风格理解不错。流体效果描述要强调"有机形态"和"虹彩光泽"。适合做设计项目的背景素材。',date:'2026-07-05',folder:'UI素材',seed:6,
-    analysis:{subject:'—',character:'—',env:'—',style:'抽象流体艺术',color:'全息渐变色',comp:'自由流动',lens:'—',light:'内发光效果',models:['通义万相','即梦 Dreamina'],suggestedParams:['16:9宽幅','艺术风格','超高清']}},
-  {id:7,title:'建筑可视化·海岸别墅',prompt:'一座现代奢华别墅建在海岸悬崖上，建筑可视化效果图，落地玻璃幕墙，清水混凝土搭配温暖木质元素，无边际泳池与海平面融为一体，戏剧性的日落光线，照片级真实渲染品质，V-Ray渲染质感',neg:'卡通、素描、不真实、玩具感',platform:'chatgpt',params:{画幅:'16:9',画质:'超高清',风格:'写实渲染'},tags:['建筑','写实','3D渲染','景观'],rating:5,uses:7,note:'ChatGPT对建筑描述的理解非常精准。"照片级真实渲染"比"超写实"效果更自然。',date:'2026-07-04',folder:'建筑可视化',seed:7,
-    analysis:{subject:'现代别墅',character:'—',env:'海岸悬崖',style:'建筑可视化',color:'暖橙与冷蓝对比',comp:'黄金分割',lens:'广角镜头',light:'日落侧光',models:['ChatGPT','即梦 Dreamina'],suggestedParams:['16:9宽幅','写实渲染','超高清']}},
-  {id:8,title:'中国水墨山水',prompt:'一幅传统中国水墨山水画，远山在薄雾中层层隐去，岩石峭壁上古松遒劲，蜿蜒的河流上一叶小舟，极简构图留出大面积空白，泼墨写意笔法，可见宣纸纹理质感，意境深远悠长',neg:'彩色、现代、数码感、写实照片',platform:'jimeng',params:{画幅:'3:4',画质:'高清',风格:'水墨画'},tags:['风景','水墨','国风','复古'],rating:4,uses:11,note:'即梦的"水墨"风格模式效果出色。描述中强调"留白"和"宣纸纹理"是营造意境的关键。',date:'2026-07-03',folder:'国风素材',seed:8,
-    analysis:{subject:'山水景观',character:'小舟渔人',env:'雾山松树河流',style:'水墨画',color:'墨色与留白',comp:'留白构图',lens:'—',light:'自然散射光',models:['即梦 Dreamina','通义万相'],suggestedParams:['3:4竖幅','水墨风格','高清画质']}},
-  {id:9,title:'奇幻森林概念设计',prompt:'一片奇幻森林的概念设计图，巨大的远古树木树皮散发着生物荧光，空中漂浮着光粒子，暗处隐藏着神秘的魔法生物，浓密的树冠间投射出体积光光束，史诗级奇幻氛围，数字绘景级品质，画面充满魔幻与神秘感',neg:'城市、现代、科技、整洁干净',platform:'chatgpt',params:{画幅:'21:9',画质:'超高清',风格:'概念艺术'},tags:['概念艺术','风景','奇幻','游戏'],rating:5,uses:5,note:'ChatGPT对奇幻场景描述的还原度很高。"生物荧光"和"体积光光束"是营造氛围的核心词。超宽画幅适合游戏场景。',date:'2026-07-02',folder:'概念设计',seed:11,
-    analysis:{subject:'奇幻森林',character:'隐藏的魔法生物',env:'远古树林深处',style:'概念艺术',color:'翠绿与金色光芒',comp:'纵深透视',lens:'广角镜头',light:'丁达尔体积光',models:['ChatGPT','即梦 Dreamina'],suggestedParams:['21:9超宽幅','概念艺术风格','超高清']}},
-  {id:10,title:'微距巧克力摄影',prompt:'一张微距美食摄影，手工黑巧克力松露特写，可可粉颗粒在戏剧性的空中定格飘散，暗调侧面打光，纯黑色背景，100mm微距镜头，商业食品广告级品质，充满高级感和食欲',neg:'明亮、平面光、业余感、塑料质感',platform:'jimeng',params:{画幅:'4:5',画质:'高清',风格:'美食摄影'},tags:['摄影','写实','产品设计','美食'],rating:3,uses:3,note:'即梦对美食摄影的"暗调侧光"效果不错。描述"颗粒飘散定格"需要多试几次才能得到满意结果。',date:'2026-07-01',folder:'产品摄影',seed:9,
-    analysis:{subject:'巧克力松露',character:'—',env:'暗色背景',style:'美食摄影',color:'深色与暖棕色',comp:'中心特写',lens:'100mm微距镜头',light:'侧面硬光',models:['即梦 Dreamina','ChatGPT'],suggestedParams:['4:5竖幅','美食摄影风格','高清画质']}},
-  {id:11,title:'UI组件系统展示',prompt:'一套干净的UI组件库展示图，悬浮的卡片上排列着现代感的按钮和表单元素，柔和的多层投影，统一和谐的设计系统配色，浅暖灰色背景，Dribbble风格的展示排版，Figma设计工具级品质',neg:'暗色模式、杂乱、凌乱',platform:'tongyi',params:{画幅:'16:9',画质:'高清',风格:'产品设计'},tags:['UI设计','极简','产品设计','组件'],rating:4,uses:16,note:'通义万相对UI展示类图片理解不错。替换组件描述可以生成不同的组件展示图，适合设计系统文档配图。',date:'2026-06-30',folder:'UI素材',seed:10,
-    analysis:{subject:'UI组件',character:'—',env:'中性灰背景',style:'产品设计展示',color:'浅灰搭配品牌色',comp:'网格排列',lens:'—',light:'均匀柔光',models:['通义万相','ChatGPT'],suggestedParams:['16:9宽幅','产品设计风格','高清画质']}},
-  {id:12,title:'动漫角色设计表',prompt:'一张动漫角色设计参考图，包含多个动态姿势，全身正面和背面视图，面部表情特写，鲜艳的赛璐璐上色风格，吉卜力工作室结合现代动漫美学，干净自信的线稿，白色背景，角色设定集品质',neg:'变形、多余肢体、写实、照片感',platform:'jimeng',params:{画幅:'3:2',画质:'高清',风格:'动漫插画'},tags:['动漫','概念艺术','角色','插画'],rating:3,uses:4,note:'即梦的"动漫"风格选项适合这个方向。角色设计表需要多次迭代，建议先单独生成各姿势再组合。',date:'2026-06-29',folder:'角色设计',seed:4,
-    analysis:{subject:'动漫角色',character:'原创角色',env:'白色背景',style:'日系动漫',color:'鲜艳赛璐璐配色',comp:'多视角排列',lens:'—',light:'均匀无影光',models:['即梦 Dreamina','通义万相'],suggestedParams:['3:2横幅','动漫风格','高清画质']}},
-];
-
-
-/* ─── Enrich MOCK_ITEMS with version history & derivation chain ─── */
-// Demo: item 1 has 3 versions (iterative refinement)
-MOCK_ITEMS[0].versions = [
-  {v:1, prompt:'\u4e00\u5ea7\u672a\u6765\u57ce\u5e02\u591c\u666f\uff0c\u9713\u8679\u706f\u5149\uff0c\u6469\u5929\u5927\u697c\uff0c\u7535\u5f71\u7ea7\u5149\u5f71', neg:'\u6a21\u7cca\u3001\u4f4e\u753b\u8d28', params:{'\u753b\u5e45':'16:9','\u753b\u8d28':'\u9ad8\u6e05'}, date:'2026-07-08', note:'\u521d\u59cb\u7248\u672c\uff0c\u7b80\u5355\u63cf\u8ff0'},
-  {v:2, prompt:'\u4e00\u5ea7\u672a\u6765\u8d5b\u535a\u670b\u514b\u57ce\u5e02\u591c\u666f\uff0c\u9713\u8679\u706f\u5149\u5012\u6620\u5728\u6e7f\u6da6\u7684\u8857\u9053\u4e0a\uff0c\u9ad8\u8038\u5165\u4e91\u7684\u6469\u5929\u5927\u697c\u6302\u7740\u5168\u606f\u5e7f\u544a\u724c\uff0c\u7535\u5f71\u7ea7\u5149\u5f71\u6548\u679c\uff0c\u4f53\u79ef\u5149\u96fe\u6c14', neg:'\u6a21\u7cca\u3001\u4f4e\u753b\u8d28\u3001\u6c34\u5370', params:{'\u753b\u5e45':'16:9','\u753b\u8d28':'\u8d85\u9ad8\u6e05','\u98ce\u683c':'\u5199\u5b9e'}, date:'2026-07-09', note:'\u589e\u52a0\u4f53\u79ef\u5149\u548c\u96fe\u6c14\uff0c\u63d0\u5347\u5c42\u6b21\u611f'},
-  {v:3, prompt:MOCK_ITEMS[0].prompt, neg:MOCK_ITEMS[0].neg, params:MOCK_ITEMS[0].params, date:'2026-07-10', note:'\u52a0\u5165\u98de\u884c\u5668\u3001\u9e45\u5375\u77f3\u8857\u9053\u7ec6\u8282\uff0c8K\u753b\u8d28'}
-];
-// Demo: item 2 derived from item 1 (reuse chain)
-MOCK_ITEMS[1].derivedFrom = {caseId:1, caseTitle:'\u8d5b\u535a\u670b\u514b\u57ce\u5e02\u591c\u666f'};
-// Demo: item 5 has 2 versions
-MOCK_ITEMS[4].versions = [
-  {v:1, prompt:'\u590d\u53e4\u80f6\u7247\u98ce\u683c\u4eba\u50cf\uff0c\u67ef\u8fbePortra 400\u8d28\u611f\uff0c\u9ec4\u91d1\u65f6\u523b\u5149\u7ebf', neg:'\u6570\u7801\u611f\u3001HDR', params:{'\u753b\u5e45':'3:4','\u753b\u8d28':'\u9ad8\u6e05'}, date:'2026-07-05', note:'\u521d\u59cb\u7248\u672c'},
-  {v:2, prompt:MOCK_ITEMS[4].prompt, neg:MOCK_ITEMS[4].neg, params:MOCK_ITEMS[4].params, date:'2026-07-06', note:'\u589e\u52a0\u7a97\u5e18\u3001\u4e9a\u9ebb\u88d9\u3001\u65f6\u5c1a\u6742\u5fd7\u98ce\u683c\u63cf\u8ff0'}
-];
+const MOCK_ITEMS=[];
 
 const FOLDERS=[
   {name:'概念设计',icon:'💡',count:2},
@@ -255,8 +214,26 @@ const ANALYSIS_SYSTEM_PROMPT=`你是一个专业的 AI 图片生成 Prompt 工�
 3. models 从"即梦 Dreamina"、"ChatGPT"、"通义万相"中选择最合适的 1-2 个
 4. suggestedParams 包含画幅（如16:9宽幅）、画质（如超高清）、风格三个建议`;
 
+/* ─── Demo Mode: Built-in API Key ─── */
+const DEMO_API_CONFIG = {
+  presetId: 'qwen37',
+  endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+  model: 'qwen3.7-max-2026-06-08',
+  apiKey: 'sk-ws-H.ELIRHYH.TpV7.MEUCIQDgeIKznMsQM6T_ahXvleIv46ePrJb6jfzOsoxyNByVTwIgKqs-RxHY7qydRV5IE5I86VFT1EJ3hP2tRMhBKjA5XN0',
+  _isDemo: true
+};
+
+const isDemoMode = () => {
+  const cfg = (() => { try { const s = localStorage.getItem('promptos_api'); return s ? JSON.parse(s) : null; } catch { return null; } })();
+  return !cfg || cfg._isDemo;
+};
+
 const getApiConfig=()=>{
-  try{const s=localStorage.getItem('promptos_api');return s?JSON.parse(s):null}catch{return null}
+  try{
+    const s=localStorage.getItem('promptos_api');
+    if(s){const parsed=JSON.parse(s);if(parsed&&parsed.apiKey&&parsed.endpoint)return parsed}
+    return DEMO_API_CONFIG;
+  }catch{return DEMO_API_CONFIG}
 };
 const saveApiConfig=(cfg)=>{
   try{localStorage.setItem('promptos_api',JSON.stringify(cfg))}catch(e){console.warn('无法保存设置',e)}
@@ -817,7 +794,7 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
             reader.onload=(ev)=>{
               const data=ev.target.result;
               setSelectedImg(data);
-              if(!hasApi){setErrorMsg('请先配置 AI API');setPhase(-1);return}
+              
               doAnalysis(data);
             };
             reader.readAsDataURL(file);
@@ -837,7 +814,7 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
     const file=e.dataTransfer?.files?.[0];
     if(file&&file.type.startsWith('image/')){
       const reader=new FileReader();
-      reader.onload=(ev)=>{const data=ev.target.result;setSelectedImg(data);if(!hasApi){setErrorMsg('请先配置 AI API');setPhase(-1);return}doAnalysis(data)};
+      reader.onload=(ev)=>{const data=ev.target.result;setSelectedImg(data);doAnalysis(data)};
       reader.readAsDataURL(file);
     }
   };
@@ -845,6 +822,12 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
   const handleDragLeave=(e)=>{e.preventDefault();e.stopPropagation();setDragOver(false)};
 
   const doAnalysis=async(base64Data)=>{
+    // Demo mode usage limit check
+    if(isDemoMode()){
+      const uses=parseInt(localStorage.getItem('promptos_demo_uses'))||0;
+      if(uses>=20){setErrorMsg('体验次数已用完（20/20）。请配置自己的 API Key 继续使用 AI 分析功能。');setPhase(-1);return}
+      localStorage.setItem('promptos_demo_uses',String(uses+1));
+    }
     setPhase(1);setProgress(0);setErrorMsg('');setAiResult(null);
     const controller=new AbortController();
     abortRef.current=controller;
@@ -854,7 +837,7 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
 
   const handleFile=(e)=>{
     const file=e.target?.files?.[0];
-    if(file){const reader=new FileReader();reader.onload=(ev)=>{const data=ev.target.result;setSelectedImg(data);if(!hasApi){setErrorMsg('请先配置 AI API');setPhase(-1);return}doAnalysis(data)};reader.readAsDataURL(file)}
+    if(file){const reader=new FileReader();reader.onload=(ev)=>{const data=ev.target.result;setSelectedImg(data);doAnalysis(data)};reader.readAsDataURL(file)}
   };
   const retry=()=>{if(selectedImg&&hasApi)doAnalysis(selectedImg);else setPhase(0)};
   const handleSaveResult=async()=>{
@@ -871,7 +854,14 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
     if(file){const reader=new FileReader();reader.onload=(ev)=>{setManualImg(ev.target.result)};reader.readAsDataURL(file)}
   };
   const handleDecompose=async()=>{
-    if(!manualPrompt.trim()||!hasApi)return;
+    if(!manualPrompt.trim())return;
+    const cfg=typeof getApiConfig==='function'?getApiConfig():null;
+    if(!cfg||!cfg.apiKey)return;
+    if(isDemoMode()){
+      const uses=parseInt(localStorage.getItem('promptos_demo_uses'))||0;
+      if(uses>=20){setDecomposeError('体验次数已用完（20/20），请配置自己的 API Key');return}
+      localStorage.setItem('promptos_demo_uses',String(uses+1));
+    }
     setDecomposing(true);setDecomposeError('');setDecomposeResult(null);
     const controller=new AbortController();
     decomposeAbortRef.current=controller;
@@ -913,16 +903,16 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
               <h2 style={{fontSize:18,fontWeight:600,letterSpacing:'-.02em'}}>{manualMode?'手动录入创作案例':'上传你的 AI 作品'}</h2>
               <p style={{color:'var(--text-3)',fontSize:13,marginTop:4}}>{manualMode?'记录你的 Prompt 和生成图，下次直接复用':'AI 视觉模型将自动分析图片并反推中文 Prompt'}</p>
             </div>
-            {!hasApi && (
-              <div style={{padding:'10px 14px',background:'rgba(255,149,0,.06)',border:'1px solid rgba(255,149,0,.15)',borderRadius:8,marginBottom:14,textAlign:'center'}}>
-                <p style={{fontSize:12,color:'#B25000',margin:0}}>尚未配置 AI API，请先 <button onClick={onOpenSettings} style={{color:'var(--accent)',fontWeight:600,textDecoration:'underline',background:'none',border:'none',cursor:'pointer',fontSize:12,padding:0}}>打开设置</button> 配置 API Key</p>
+            {isDemoMode() && (
+              <div style={{padding:'10px 14px',background:'rgba(0,122,255,.05)',border:'1px solid rgba(0,122,255,.12)',borderRadius:8,marginBottom:14,textAlign:'center'}}>
+                <p style={{fontSize:12,color:'var(--accent)',margin:0,fontWeight:500}}>✨ 体验模式已启用，上传即可 AI 自动分析 <span style={{color:'var(--text-3)',fontWeight:400}}>(剩余 {20 - (parseInt(localStorage.getItem('promptos_demo_uses'))||0)} 次)</span></p>
               </div>
             )}
             <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleFile}/>
-            <div onClick={()=>{if(hasApi)fileRef.current?.click();else onOpenSettings()}}
+            <div onClick={()=>fileRef.current?.click()}
               onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
               style={{border:dragOver?'2px solid var(--accent)':'1.5px dashed rgba(0,0,0,.15)',borderRadius:12,padding:40,textAlign:'center',cursor:'pointer',transition:'all .2s ease',
-                background:dragOver?'var(--accent-bg)':'var(--bg)',opacity:hasApi?1:.5}}
+                background:dragOver?'var(--accent-bg)':'var(--bg)',opacity:1}}
               onMouseEnter={e=>{if(hasApi&&!dragOver){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.background='var(--accent-bg)'}}}
               onMouseLeave={e=>{if(!dragOver){e.currentTarget.style.borderColor='rgba(0,0,0,.15)';e.currentTarget.style.background='var(--bg)'}}}>
               <IImage size={32} color="var(--text-3)"/>
@@ -1234,12 +1224,21 @@ const SettingsModal=({onClose,apiConfig,setApiConfig})=>{
     <div className="anim-fade" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.3)',backdropFilter:'blur(16px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300}} onClick={onClose}>
       <div className="anim-scale" onClick={e=>e.stopPropagation()} style={{width:500,background:'var(--surface)',borderRadius:14,boxShadow:'var(--shadow-lg)',overflow:'hidden'}}>
         <div style={{padding:'20px 24px 14px',display:'flex',alignItems:'center',borderBottom:'0.5px solid rgba(0,0,0,0.06)'}}>
-          <div><h3 style={{fontSize:16,fontWeight:600,letterSpacing:'-.02em'}}>AI API 设置</h3><p style={{fontSize:12,color:'var(--text-3)',marginTop:2}}>配置视觉模型来启用真实的图片分析能力</p></div>
+          <div><h3 style={{fontSize:16,fontWeight:600,letterSpacing:'-.02em'}}>AI API 设置</h3><p style={{fontSize:12,color:'var(--text-3)',marginTop:2}}>{isDemoMode()?'当前为体验模式，使用内置演示 Key':'配置视觉模型来启用真实的图片分析能力'}</p></div>
           <div style={{flex:1}}/>
           <button onClick={onClose} style={{color:'var(--text-3)',padding:4,borderRadius:6,display:'flex',transition:'all .15s'}}
             onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,0,0,.04)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}><IX size={17}/></button>
         </div>
         <div style={{padding:'18px 24px',maxHeight:'60vh',overflowY:'auto'}}>
+          {isDemoMode()&&(
+            <div style={{marginBottom:14,padding:'10px 14px',background:'rgba(0,122,255,.06)',border:'1px solid rgba(0,122,255,.15)',borderRadius:8,display:'flex',alignItems:'flex-start',gap:8}}>
+              <span style={{fontSize:14,flexShrink:0}}>ℹ️</span>
+              <div>
+                <p style={{fontSize:12,fontWeight:600,color:'var(--accent)',margin:0,lineHeight:1.4}}>体验模式</p>
+                <p style={{fontSize:11,color:'var(--text-2)',margin:'4px 0 0',lineHeight:1.5}}>当前使用内置演示 Key，功能完整但有调用限制。如需长期使用，建议在百炼平台申请自己的免费 API Key。</p>
+              </div>
+            </div>
+          )}
           <div style={{marginBottom:18}}>
             <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:6,letterSpacing:'.1px'}}>选择 AI 平台</label>
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
@@ -1451,6 +1450,11 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
     if(!editModules)return;
     const cfg=typeof getApiConfig==='function'?getApiConfig():null;
     if(!cfg||!cfg.apiKey)return;
+    if(isDemoMode()){
+      const uses=parseInt(localStorage.getItem('promptos_demo_uses'))||0;
+      if(uses>=20){alert('体验次数已用完（20/20），请配置自己的 API Key');return}
+      localStorage.setItem('promptos_demo_uses',String(uses+1));
+    }
     setReassembling(true);setReassembledPrompt(null);
     const controller=new AbortController();
     reassembleAbortRef.current=controller;
