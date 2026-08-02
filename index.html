@@ -17,9 +17,9 @@
 --violet:#AF52DE;--rose:#FF3B30;--emerald:#34C759;--amber:#FF9500;--sky:#5AC8FA;
 --radius:10px;--radius-lg:14px;--radius-xl:20px;
 --shadow-xs:0 0.5px 1px rgba(0,0,0,0.03);
---shadow-sm:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.03);
---shadow-md:0 4px 14px rgba(0,0,0,0.06),0 1px 3px rgba(0,0,0,0.04);
---shadow-lg:0 10px 40px rgba(0,0,0,0.08),0 2px 10px rgba(0,0,0,0.04);
+--shadow-sm:0 1px 2px rgba(0,0,0,0.04),0 1px 3px rgba(0,0,0,0.02);
+--shadow-md:0 4px 16px rgba(0,0,0,0.06),0 1px 4px rgba(0,0,0,0.04);
+--shadow-lg:0 12px 40px rgba(0,0,0,0.1),0 4px 12px rgba(0,0,0,0.04);
 --sidebar:240px;--topbar:52px;
 --font:-apple-system,"SF Pro Display","SF Pro Text","Helvetica Neue","PingFang SC",system-ui,sans-serif;
 }
@@ -27,7 +27,7 @@ html,body,#root{height:100%;overflow:hidden}
 body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;letter-spacing:-0.01em}
 input,textarea,button,select{font-family:inherit;font-size:inherit}
 button{cursor:pointer;border:none;background:none}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);border-radius:10px}::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.18)}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.08);border-radius:10px;border:1px solid transparent;background-clip:padding-box}::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.15);background-clip:padding-box}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -59,6 +59,8 @@ button{cursor:pointer;border:none;background:none}
 .card{background:var(--surface);border-radius:var(--radius-lg);border:0.5px solid rgba(0,0,0,0.08);box-shadow:var(--shadow-sm);transition:all .25s cubic-bezier(.25,.1,.25,1)}
 .card:hover{box-shadow:var(--shadow-md);border-color:rgba(0,0,0,0.12)}
 .tag{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:0}
+.nav-active{background:rgba(0,0,0,.05);position:relative}
+.nav-active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:16px;border-radius:0 3px 3px 0;background:var(--accent)}
 </style>
 
 </head>
@@ -67,39 +69,43 @@ button{cursor:pointer;border:none;background:none}
 <script type="text/babel">
 const {useState,useRef,useEffect,useCallback,useMemo,Fragment}=React;
 
-/* ─── SVG Icons (stroke-based, rounded) ─── */
-const I=({d,size=20,color="currentColor",sw=1.8,children,filled})=><svg width={size} height={size} viewBox="0 0 24 24" fill={filled?"currentColor":"none"} stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">{children||<path d={d}/>}</svg>;
-const IHome=p=><I {...p}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></I>;
-const IWand=p=><I {...p}><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8l1.4 1.4M12.2 11.8l-1.4 1.4M17.8 6.2l1.4-1.4M12.2 6.2l-1.4-1.4"/><path d="M9 18l6-6"/></I>;
-const IGrid=p=><I {...p}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></I>;
-const IBlocks=p=><I {...p}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></I>;
-const ISearch=p=><I {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></I>;
-const IUpload=p=><I {...p}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></I>;
-const IPlus=p=><I {...p}><path d="M12 5v14M5 12h14"/></I>;
-const IX=p=><I {...p}><path d="M18 6L6 18M6 6l12 12"/></I>;
+/* ─── SVG Icons (Behance/Zcool style: minimal, clean, thin) ─── */
+const I=({d,size=18,color="currentColor",sw=1.3,children,filled})=><svg width={size} height={size} viewBox="0 0 24 24" fill={filled?"currentColor":"none"} stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">{children||<path d={d}/>}</svg>;
+
+const IHome=p=><I {...p}><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1z"/><path d="M9 21V12h6v9"/></I>;
+const IWand=p=><I {...p}><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></I>;
+const IGrid=p=><I {...p}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></I>;
+const IBlocks=p=><I {...p}><path d="M12 2L2 7l10 5 10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></I>;
+const ISearch=p=><I {...p}><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></I>;
+const IUpload=p=><I {...p}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></I>;
+const IPlus=p=><I {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></I>;
+const IX=p=><I {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></I>;
 const ICopy=p=><I {...p}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></I>;
-const ICheck=p=><I {...p}><path d="M20 6L9 17l-5-5"/></I>;
-const ISparkle=p=><I {...p}><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/><path d="M19 15l.75 2.25L22 18l-2.25.75L19 21l-.75-2.25L16 18l2.25-.75L19 15z"/></I>;
-const IEdit=p=><I {...p}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></I>;
+const ICheck=p=><I {...p}><polyline points="20 6 9 17 4 12"/></I>;
+const IEdit=p=><I {...p}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"/></I>;
 const IHeart=p=><I {...p}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></I>;
 const IEye=p=><I {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></I>;
-const ITrash=p=><I {...p}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></I>;
-const IChevron=p=><I {...p}><path d="M9 18l6-6-6-6"/></I>;
-const IDown=p=><I {...p}><path d="M6 9l6 6 6-6"/></I>;
+const ITrash=p=><I {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></I>;
+const IChevron=p=><I {...p}><polyline points="9 18 15 12 9 6"/></I>;
+const IDown=p=><I {...p}><polyline points="6 9 12 15 18 9"/></I>;
 const ITarget=p=><I {...p}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></I>;
-const ISun=p=><I {...p}><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></I>;
+const ISun=p=><I {...p}><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></I>;
 const ICamera=p=><I {...p}><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></I>;
-const IPalette=p=><I {...p}><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></I>;
-const IZap=p=><I {...p}><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></I>;
-const IImage=p=><I {...p}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></I>;
+const IPalette=p=><I {...p}><circle cx="13.5" cy="6.5" r=".5" fill="currentColor" stroke="none"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor" stroke="none"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor" stroke="none"/><circle cx="6.5" cy="12" r=".5" fill="currentColor" stroke="none"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-1 0-.83.67-1.5 1.5-1.5H16a6 6 0 006-6c0-5.52-4.48-9-10-9z"/></I>;
+const IZap=p=><I {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></I>;
+const IImage=p=><I {...p}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></I>;
 const IFolder=p=><I {...p}><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></I>;
-const IArrow=p=><I {...p}><path d="M5 12h14M12 5l7 7-7 7"/></I>;
-const IRefresh=p=><I {...p}><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></I>;
-const ISliders=p=><I {...p}><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></I>;
+const IArrow=p=><I {...p}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></I>;
+const IRefresh=p=><I {...p}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></I>;
+const ISliders=p=><I {...p}><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></I>;
 const IBookmark=p=><I {...p}><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></I>;
-const ILayers=p=><I {...p}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></I>;
+const ILayers=p=><I {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></I>;
 const IGrip=p=><I {...p}><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></I>;
 const IMoreV=p=><I {...p}><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></I>;
+const IHistory=p=><I {...p}><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1013 4.05"/><path d="M3 8l2.1-2.1A9 9 0 0113 4"/><path d="M12 7v5l3 2"/></I>;
+const ILink=p=><I {...p}><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></I>;
+const IZapSmall=p=><I {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></I>;
+const ISparkle=p=><I {...p}><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/><path d="M19 15l.75 2.25L22 18l-2.25.75L19 21l-.75-2.25L16 18l2.25-.75z"/></I>;
 
 /* ─── Placeholder images (gradient-based) ─── */
 const GRADS=[
@@ -144,6 +150,22 @@ const MOCK_ITEMS=[
     analysis:{subject:'UI组件',character:'—',env:'中性灰背景',style:'产品设计展示',color:'浅灰搭配品牌色',comp:'网格排列',lens:'—',light:'均匀柔光',models:['通义万相','ChatGPT'],suggestedParams:['16:9宽幅','产品设计风格','高清画质']}},
   {id:12,title:'动漫角色设计表',prompt:'一张动漫角色设计参考图，包含多个动态姿势，全身正面和背面视图，面部表情特写，鲜艳的赛璐璐上色风格，吉卜力工作室结合现代动漫美学，干净自信的线稿，白色背景，角色设定集品质',neg:'变形、多余肢体、写实、照片感',platform:'jimeng',params:{画幅:'3:2',画质:'高清',风格:'动漫插画'},tags:['动漫','概念艺术','角色','插画'],rating:3,uses:4,note:'即梦的"动漫"风格选项适合这个方向。角色设计表需要多次迭代，建议先单独生成各姿势再组合。',date:'2026-06-29',folder:'角色设计',seed:4,
     analysis:{subject:'动漫角色',character:'原创角色',env:'白色背景',style:'日系动漫',color:'鲜艳赛璐璐配色',comp:'多视角排列',lens:'—',light:'均匀无影光',models:['即梦 Dreamina','通义万相'],suggestedParams:['3:2横幅','动漫风格','高清画质']}},
+];
+
+
+/* ─── Enrich MOCK_ITEMS with version history & derivation chain ─── */
+// Demo: item 1 has 3 versions (iterative refinement)
+MOCK_ITEMS[0].versions = [
+  {v:1, prompt:'\u4e00\u5ea7\u672a\u6765\u57ce\u5e02\u591c\u666f\uff0c\u9713\u8679\u706f\u5149\uff0c\u6469\u5929\u5927\u697c\uff0c\u7535\u5f71\u7ea7\u5149\u5f71', neg:'\u6a21\u7cca\u3001\u4f4e\u753b\u8d28', params:{'\u753b\u5e45':'16:9','\u753b\u8d28':'\u9ad8\u6e05'}, date:'2026-07-08', note:'\u521d\u59cb\u7248\u672c\uff0c\u7b80\u5355\u63cf\u8ff0'},
+  {v:2, prompt:'\u4e00\u5ea7\u672a\u6765\u8d5b\u535a\u670b\u514b\u57ce\u5e02\u591c\u666f\uff0c\u9713\u8679\u706f\u5149\u5012\u6620\u5728\u6e7f\u6da6\u7684\u8857\u9053\u4e0a\uff0c\u9ad8\u8038\u5165\u4e91\u7684\u6469\u5929\u5927\u697c\u6302\u7740\u5168\u606f\u5e7f\u544a\u724c\uff0c\u7535\u5f71\u7ea7\u5149\u5f71\u6548\u679c\uff0c\u4f53\u79ef\u5149\u96fe\u6c14', neg:'\u6a21\u7cca\u3001\u4f4e\u753b\u8d28\u3001\u6c34\u5370', params:{'\u753b\u5e45':'16:9','\u753b\u8d28':'\u8d85\u9ad8\u6e05','\u98ce\u683c':'\u5199\u5b9e'}, date:'2026-07-09', note:'\u589e\u52a0\u4f53\u79ef\u5149\u548c\u96fe\u6c14\uff0c\u63d0\u5347\u5c42\u6b21\u611f'},
+  {v:3, prompt:MOCK_ITEMS[0].prompt, neg:MOCK_ITEMS[0].neg, params:MOCK_ITEMS[0].params, date:'2026-07-10', note:'\u52a0\u5165\u98de\u884c\u5668\u3001\u9e45\u5375\u77f3\u8857\u9053\u7ec6\u8282\uff0c8K\u753b\u8d28'}
+];
+// Demo: item 2 derived from item 1 (reuse chain)
+MOCK_ITEMS[1].derivedFrom = {caseId:1, caseTitle:'\u8d5b\u535a\u670b\u514b\u57ce\u5e02\u591c\u666f'};
+// Demo: item 5 has 2 versions
+MOCK_ITEMS[4].versions = [
+  {v:1, prompt:'\u590d\u53e4\u80f6\u7247\u98ce\u683c\u4eba\u50cf\uff0c\u67ef\u8fbePortra 400\u8d28\u611f\uff0c\u9ec4\u91d1\u65f6\u523b\u5149\u7ebf', neg:'\u6570\u7801\u611f\u3001HDR', params:{'\u753b\u5e45':'3:4','\u753b\u8d28':'\u9ad8\u6e05'}, date:'2026-07-05', note:'\u521d\u59cb\u7248\u672c'},
+  {v:2, prompt:MOCK_ITEMS[4].prompt, neg:MOCK_ITEMS[4].neg, params:MOCK_ITEMS[4].params, date:'2026-07-06', note:'\u589e\u52a0\u7a97\u5e18\u3001\u4e9a\u9ebb\u88d9\u3001\u65f6\u5c1a\u6742\u5fd7\u98ce\u683c\u63cf\u8ff0'}
 ];
 
 const FOLDERS=[
@@ -198,12 +220,12 @@ const BLOCKS={
 
 /* ─── AI API Configuration & Helpers ─── */
 const API_PRESETS=[
-  {id:'qwen37',name:'通义千问 3.7-Max 多模态（推荐）',endpoint:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen3.7-max-2026-06-08',hint:'在 dashscope.console.aliyun.com 获取 API Key'},
-  {id:'qwen',name:'通义千问 VL（经典视觉模型）',endpoint:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-vl-max',hint:'同上百炼平台 API Key，稳定可靠'},
-  {id:'moonshot',name:'Moonshot Kimi 视觉',endpoint:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-32k-vision',hint:'在 platform.moonshot.cn 获取 API Key'},
-  {id:'zhipu',name:'智谱 GLM-4V',endpoint:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4v',hint:'在 open.bigmodel.cn 获取 API Key'},
-  {id:'openai',name:'OpenAI GPT-4o',endpoint:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',hint:'需要 OpenAI API Key'},
-  {id:'custom',name:'自定义',endpoint:'',model:'',hint:'填写你自己的 OpenAI 兼容 API 地址'},
+  {id:'qwen37',name:'通义千问 3.7-Max 多模态（推荐）',endpoint:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen3.7-max-2026-06-08',hint:'在百炼平台获取 API Key',url:'https://bailian.console.aliyun.com/'},
+  {id:'qwen',name:'通义千问 VL（经典视觉模型）',endpoint:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-vl-max',hint:'同上百炼平台 API Key，稳定可靠',url:'https://bailian.console.aliyun.com/'},
+  {id:'moonshot',name:'Moonshot Kimi 视觉',endpoint:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-32k-vision',hint:'在 platform.moonshot.cn 获取 API Key',url:'https://platform.moonshot.cn/'},
+  {id:'zhipu',name:'智谱 GLM-4V',endpoint:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4v',hint:'在 open.bigmodel.cn 获取 API Key',url:'https://open.bigmodel.cn/'},
+  {id:'openai',name:'OpenAI GPT-4o',endpoint:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',hint:'需要 OpenAI API Key',url:'https://platform.openai.com/api-keys'},
+  {id:'custom',name:'自定义',endpoint:'',model:'',hint:'填写你自己的 OpenAI 兼容 API 地址',url:''},
 ];
 
 const ANALYSIS_SYSTEM_PROMPT=`你是一个专业的 AI 图片生成 Prompt 工程师。请仔细分析用户上传的图片，从三个维度进行结构化分析，并生成可以直接用于中文 AI 图片生成平台（即梦 Dreamina、ChatGPT 图片生成、通义万相）的高质量中文 Prompt。
@@ -240,6 +262,146 @@ const saveApiConfig=(cfg)=>{
   try{localStorage.setItem('promptos_api',JSON.stringify(cfg))}catch(e){console.warn('无法保存设置',e)}
 };
 
+
+/* ─── AI Prompt Decomposition (for manual entry) ─── */
+const decomposePrompt = async (promptText, base64Image, apiConfig, signal) => {
+  const {endpoint, model, apiKey} = apiConfig;
+  if (!endpoint || !model || !apiKey) throw new Error('请先在设置中配置 API 地址和 Key');
+
+  const systemPrompt = `你是一个专业的 AI 图片生成 Prompt 分析师。请将用户提供的 Prompt 文本拆解为结构化的模块。
+
+严格按照以下 JSON 格式返回，不要包含任何其他文字：
+{
+  "analysis": {
+    "subject": "画面主体描述",
+    "character": "人物描述（无人物填"—"）",
+    "env": "环境场景",
+    "style": "视觉艺术风格",
+    "color": "色彩特征和色调",
+    "comp": "构图方式",
+    "lens": "摄影镜头或视角（非摄影类填"—"）",
+    "light": "光影效果",
+    "models": ["推荐AI平台1"],
+    "suggestedParams": ["建议画幅", "建议画质", "建议风格"]
+  },
+  "tags": ["标签1", "标签2", "标签3"]
+}
+
+拆解要求：
+1. 从 Prompt 文本中精准提取各模块信息，不要编造
+2. 如果某个模块在文本中无法推断，填"—"
+3. tags 提取 3-5 个精准中文分类标签
+4. models 从"即梦 Dreamina"、"ChatGPT"、"通义万相"中选最合适的 1-2 个`;
+
+  const userContent = [];
+  if (base64Image) {
+    userContent.push({type: 'image_url', image_url: {url: base64Image}});
+    userContent.push({type: 'text', text: `请结合这张图片和以下 Prompt 文本进行拆解分析。如果 Prompt 中缺少某些信息但图片中可以看到，请根据图片补充：
+
+${promptText}`});
+  } else {
+    userContent.push({type: 'text', text: `请拆解以下 Prompt 文本：
+
+${promptText}`});
+  }
+
+  const body = {
+    model,
+    messages: [
+      {role: 'system', content: systemPrompt},
+      {role: 'user', content: userContent}
+    ],
+    temperature: 0.3,
+    max_tokens: 1500,
+  };
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`},
+    body: JSON.stringify(body),
+    signal,
+  });
+
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('API Key 无效');
+    if (res.status === 400) throw new Error('请求参数错误，请检查模型是否支持');
+    throw new Error(`API 请求失败 (${res.status})`);
+  }
+
+  const data = await res.json();
+  const c = data.choices?.[0]?.message?.content;
+  if (!c) throw new Error('AI 返回了空结果');
+
+  let parsed;
+  try { parsed = JSON.parse(c); }
+  catch {
+    const m = c.match(/\{[\s\S]*\}/);
+    if (m) { try { parsed = JSON.parse(m[0]); } catch { throw new Error('AI 返回格式异常'); } }
+    else throw new Error('无法解析 AI 返回结果');
+  }
+  if (!parsed.analysis) throw new Error('AI 分析结果不完整');
+  return parsed;
+};
+
+
+/* ─── AI Prompt Reassembly (from edited modules) ─── */
+const reassemblePrompt = async (modules, originalPrompt, apiConfig, signal) => {
+  const {endpoint, model, apiKey} = apiConfig;
+  if (!endpoint || !model || !apiKey) throw new Error('请先在设置中配置 API');
+
+  const systemPrompt = `你是一位专业的 AI 绘画 Prompt 工程师。用户已经修改了 Prompt 的部分模块，请将这些模块重新拼装为一段流畅、专业的中文 AI 绘画 Prompt。
+
+要求：
+1. 将所有模块信息自然融合为一段连贯的描述，不要简单罗列
+2. 补充合理的画面细节、质感描述来提升生成效果
+3. 加入画质增强词（高精度、细节丰富等）
+4. 保持用户修改的模块内容不变，不要改变主体、风格等核心内容
+5. 输出 80-150 字的自然流畅中文 Prompt
+
+严格按照以下 JSON 格式返回：
+{
+  "reassembled": "重组后的完整中文 Prompt",
+  "tips": "一句简短的优化说明"
+}
+只返回 JSON，不要其他文字。`;
+
+  const moduleText = Object.entries(modules)
+    .filter(([k,v]) => v && v !== '—' && v !== '-')
+    .map(([k,v]) => `${k}：${v}`)
+    .join('\n');
+
+  const body = {
+    model,
+    messages: [
+      {role: 'system', content: systemPrompt},
+      {role: 'user', content: `原始 Prompt：${originalPrompt}\n\n修改后的模块：\n${moduleText}\n\n请重新拼装为流畅的 Prompt。`}
+    ],
+    temperature: 0.5,
+    max_tokens: 1200,
+  };
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`},
+    body: JSON.stringify(body),
+    signal,
+  });
+
+  if (!res.ok) throw new Error(`API 请求失败 (${res.status})`);
+  const data = await res.json();
+  const c = data.choices?.[0]?.message?.content;
+  if (!c) throw new Error('AI 返回了空结果');
+
+  let parsed;
+  try { parsed = JSON.parse(c); }
+  catch {
+    const m = c.match(/\{[\s\S]*\}/);
+    if (m) { try { parsed = JSON.parse(m[0]); } catch { throw new Error('AI 返回格式异常'); } }
+    else throw new Error('无法解析 AI 返回结果');
+  }
+  return parsed;
+};
+
 const getUserItems=()=>{
   try{const s=localStorage.getItem('promptos_items');return s?JSON.parse(s):[];}catch{return []}
 };
@@ -247,13 +409,39 @@ const saveUserItems=(items)=>{
   try{localStorage.setItem('promptos_items',JSON.stringify(items))}catch(e){console.warn('数据太大无法保存，建议导出数据后清理',e)}
 };
 
+/* ─── Data Model v2: Creative Case Migration ─── */
+const SCHEMA_VERSION = 2;
+
+const migrateItem = (item) => {
+  // Ensure versions array exists (Prompt version history)
+  if (!item.versions || !Array.isArray(item.versions)) {
+    item.versions = [{
+      v: 1,
+      prompt: item.prompt || '',
+      neg: item.neg || '',
+      params: item.params || {},
+      date: item.date || new Date().toISOString().slice(0,10),
+      note: '\u521d\u59cb\u7248\u672c'
+    }];
+  }
+  // Ensure derivedFrom field (reuse chain)
+  if (item.derivedFrom === undefined) {
+    item.derivedFrom = null;
+  }
+  // Ensure analysis/disassembly exists
+  if (!item.analysis) {
+    item.analysis = {subject:'\u2014',character:'\u2014',env:'\u2014',style:'\u2014',color:'\u2014',comp:'\u2014',lens:'\u2014',light:'\u2014',models:[],suggestedParams:[]};
+  }
+  // Ensure schema version tag
+  item._schema = SCHEMA_VERSION;
+  return item;
+};
+
+const migrateAll = (items) => items.map(migrateItem);
+
+
 const createThumbnail=(base64Data)=>{
-  return new Promise((resolve)=>{
-    const img=new Image();
-    img.onload=()=>{const c=document.createElement('canvas');const maxW=480;const scale=maxW/img.width;const h=Math.round(img.height*scale);c.width=maxW;c.height=h;const ctx=c.getContext('2d');ctx.drawImage(img,0,0,maxW,h);resolve(c.toDataURL('image/jpeg',0.6))};
-    img.onerror=()=>resolve(null);
-    img.src=base64Data;
-  });
+  return Promise.resolve(base64Data);
 };
 
 const analyzeImage=async(base64Data,apiConfig,signal)=>{
@@ -379,14 +567,18 @@ const Sidebar=({page,setPage,folders,folderFilter,onFolderClick,trashCount,itemC
 
   const NavItem=({id,icon,label,badge})=>(
     <button key={id} onClick={()=>{setPage(id);onFolderClick(null)}}
-      style={{width:'100%',display:'flex',alignItems:'center',gap:8,padding:'6px 10px',borderRadius:7,marginBottom:1,
-        background:page===id?'rgba(0,0,0,.05)':'transparent',
+      style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'7px 12px',borderRadius:8,marginBottom:2,
+        background:page===id?'rgba(0,0,0,.06)':'transparent',
         color:page===id?'var(--text)':'var(--text-2)',
-        fontWeight:page===id?600:400,fontSize:13,transition:'all .15s ease',letterSpacing:'-.01em'}}
-      onMouseEnter={e=>{if(page!==id)e.currentTarget.style.background='rgba(0,0,0,.03)'}}
-      onMouseLeave={e=>{if(page!==id)e.currentTarget.style.background='transparent'}}>
-      {icon}<span style={{flex:1,textAlign:'left'}}>{label}</span>
-      {badge!=null&&<span style={{fontSize:11,color:'var(--text-3)',fontWeight:400,minWidth:20,textAlign:'right'}}>{badge}</span>}
+        fontWeight:page===id?600:400,fontSize:13,transition:'all .18s ease',letterSpacing:'-.01em',
+        position:'relative',
+        boxShadow:page===id?'inset 0 0 0 0.5px rgba(0,0,0,.06)':'none'}}
+      onMouseEnter={e=>{if(page!==id){e.currentTarget.style.background='rgba(0,0,0,.03)';e.currentTarget.style.color='var(--text)'}}}
+      onMouseLeave={e=>{if(page!==id){e.currentTarget.style.background='transparent';e.currentTarget.style.color='var(--text-2)'}}}>
+      <span style={{color:page===id?'var(--accent)':'inherit',display:'flex',alignItems:'center'}}>{icon}</span>
+      <span style={{flex:1,textAlign:'left'}}>{label}</span>
+      {page===id&&<span style={{position:'absolute',left:0,top:'50%',transform:'translateY(-50%)',width:3,height:16,borderRadius:'0 3px 3px 0',background:'var(--accent)'}}/>}
+      {badge!=null&&<span style={{fontSize:11,color:page===id?'var(--text-2)':'var(--text-3)',fontWeight:500,minWidth:20,textAlign:'right',background:page===id?'rgba(0,0,0,.04)':'transparent',padding:'1px 6px',borderRadius:10}}>{badge}</span>}
     </button>
   );
 
@@ -406,7 +598,7 @@ const Sidebar=({page,setPage,folders,folderFilter,onFolderClick,trashCount,itemC
       <nav style={{padding:'2px 10px',flex:1,overflowY:'auto'}}>
         {/* WORKSPACE */}
         <div style={{marginBottom:4,padding:'0 8px'}}>
-          <span style={{fontSize:10,fontWeight:700,color:'var(--text-3)',letterSpacing:'.8px',textTransform:'uppercase'}}>Workspace</span>
+          <span style={{fontSize:10,fontWeight:600,color:'var(--text-3)',letterSpacing:'.6px',textTransform:'uppercase',opacity:.7}}>WORKSPACE</span>
         </div>
         <NavItem id="dashboard" icon={<IHome size={16}/>} label={'\u5de5\u4f5c\u53f0'}/>
         <NavItem id="library" icon={<IGrid size={16}/>} label="Prompt" badge={itemCount}/>
@@ -414,7 +606,7 @@ const Sidebar=({page,setPage,folders,folderFilter,onFolderClick,trashCount,itemC
 
         {/* COLLECTIONS */}
         <div style={{margin:'18px 0 4px',padding:'0 8px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <span style={{fontSize:10,fontWeight:700,color:'var(--text-3)',letterSpacing:'.8px',textTransform:'uppercase'}}>Collections</span>
+          <span style={{fontSize:10,fontWeight:600,color:'var(--text-3)',letterSpacing:'.6px',textTransform:'uppercase',opacity:.7}}>COLLECTIONS</span>
           <button onClick={onCreateFolder} style={{color:'var(--text-3)',padding:2,borderRadius:4,display:'flex',alignItems:'center',transition:'all .15s'}} title={'\u65b0\u5efa\u6536\u85cf\u5939'}
             onMouseEnter={e=>{e.currentTarget.style.color='var(--accent)';e.currentTarget.style.background='var(--accent-bg)'}}
             onMouseLeave={e=>{e.currentTarget.style.color='var(--text-3)';e.currentTarget.style.background='transparent'}}>
@@ -568,6 +760,21 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
   const [aiResult,setAiResult]=useState(null);
   const [errorMsg,setErrorMsg]=useState('');
   const [copied,setCopied]=useState(false);
+  const [selectedPlatform,setSelectedPlatform]=useState('jimeng');
+  const [manualMode,setManualMode]=useState(false);
+  const [manualTitle,setManualTitle]=useState('');
+  const [manualPrompt,setManualPrompt]=useState('');
+  const [manualNeg,setManualNeg]=useState('');
+  const [manualTags,setManualTags]=useState('');
+  const [manualImg,setManualImg]=useState(null);
+  const [manualRatio,setManualRatio]=useState('16:9');
+  const [manualQuality,setManualQuality]=useState('高清');
+  const [manualStyle,setManualStyle]=useState('写实');
+  const [decomposeResult,setDecomposeResult]=useState(null);
+  const [decomposing,setDecomposing]=useState(false);
+  const [decomposeError,setDecomposeError]=useState('');
+  const decomposeAbortRef=useRef(null);
+  const manualFileRef=useRef(null);
   const fileRef=useRef(null);
   const abortRef=useRef(null);
   const hasApi=apiConfig&&apiConfig.apiKey&&apiConfig.endpoint;
@@ -653,9 +860,37 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
   const handleSaveResult=async()=>{
     if(!aiResult)return;const a=aiResult.analysis;
     const thumb=selectedImg?await createThumbnail(selectedImg):null;
-    const newItem={id:Date.now(),user:true,title:(a.subject||'未命名').slice(0,20),prompt:aiResult.prompt,neg:aiResult.negPrompt||'',platform:'jimeng',
+    const newItem={id:Date.now(),user:true,title:(a.subject||'未命名').slice(0,20),prompt:aiResult.prompt,neg:aiResult.negPrompt||'',platform:selectedPlatform,
       params:{画幅:(a.suggestedParams&&a.suggestedParams[0])||'自动',画质:(a.suggestedParams&&a.suggestedParams[1])||'高清',风格:(a.suggestedParams&&a.suggestedParams[2])||'自动'},
       tags:aiResult.tags||[],rating:4,uses:0,note:'AI 自动生成，可编辑',date:new Date().toISOString().slice(0,10),folder:'未分类',seed:Math.floor(Math.random()*15),analysis:a,thumbnail:thumb};
+    onSave(newItem);onClose();
+  };
+
+  const handleManualFile=(e)=>{
+    const file=e.target?.files?.[0];
+    if(file){const reader=new FileReader();reader.onload=(ev)=>{setManualImg(ev.target.result)};reader.readAsDataURL(file)}
+  };
+  const handleDecompose=async()=>{
+    if(!manualPrompt.trim()||!hasApi)return;
+    setDecomposing(true);setDecomposeError('');setDecomposeResult(null);
+    const controller=new AbortController();
+    decomposeAbortRef.current=controller;
+    try{
+      const result=await decomposePrompt(manualPrompt,manualImg,apiConfig,controller.signal);
+      if(!controller.signal.aborted){setDecomposeResult(result);
+        // Auto-fill tags if empty
+        if(!manualTags.trim()&&result.tags){setManualTags(result.tags.join(', '))}
+      }
+    }catch(err){if(err.name!=='AbortError')setDecomposeError(err.message||'拆解失败')}
+    finally{setDecomposing(false)}
+  };
+
+  const handleManualSave=async()=>{
+    if(!manualPrompt.trim())return;
+    const thumb=manualImg?await createThumbnail(manualImg):null;
+    const newItem={id:Date.now(),user:true,title:(manualTitle||manualPrompt.slice(0,20)).slice(0,30),prompt:manualPrompt,neg:manualNeg,platform:'jimeng',
+      params:{'\u753b\u5e45':manualRatio,'\u753b\u8d28':manualQuality,'\u98ce\u683c':manualStyle},
+      tags:manualTags.split(',').map(s=>s.trim()).filter(Boolean),rating:3,uses:0,note:'手动录入',date:new Date().toISOString().slice(0,10),folder:'未分类',seed:Math.floor(Math.random()*15),analysis:decomposeResult?.analysis||null,thumbnail:thumb};
     onSave(newItem);onClose();
   };
 
@@ -666,17 +901,17 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
   ]:[];
 
   return(
-    <div className="anim-fade" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.3)',backdropFilter:'blur(16px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:200}}>
+    <div className="anim-fade" style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',backdropFilter:'blur(20px) saturate(1.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:200}}>
       <div className="anim-scale" onClick={e=>e.stopPropagation()}
-        style={{width:phase===2?920:520,maxHeight:'90vh',background:'var(--surface)',borderRadius:16,boxShadow:'var(--shadow-lg)',display:'flex',flexDirection:phase===2?'row':'column',overflow:'hidden',transition:'width .35s cubic-bezier(.25,.1,.25,1)'}}>
+        style={{width:phase===2?920:520,maxHeight:'90vh',background:'var(--surface)',borderRadius:18,boxShadow:'0 24px 80px rgba(0,0,0,.15),0 8px 24px rgba(0,0,0,.08)',display:'flex',flexDirection:phase===2?'row':'column',overflow:'hidden',transition:'width .35s cubic-bezier(.25,.1,.25,1)',border:'0.5px solid rgba(255,255,255,.5)'}}>
 
         {/* Phase 0: Upload */}
         {phase===0 && (
-          <div style={{padding:32}}>
+          <div style={{padding:32,overflowY:'auto',maxHeight:'90vh'}}>
             <div style={{textAlign:'center',marginBottom:24}}>
               <div style={{width:48,height:48,borderRadius:12,background:'var(--accent-bg)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:12}}><IUpload size={22} color="var(--accent)" sw={1.8}/></div>
-              <h2 style={{fontSize:18,fontWeight:600,letterSpacing:'-.02em'}}>上传你的 AI 作品</h2>
-              <p style={{color:'var(--text-3)',fontSize:13,marginTop:4}}>AI 视觉模型将自动分析图片并反推中文 Prompt</p>
+              <h2 style={{fontSize:18,fontWeight:600,letterSpacing:'-.02em'}}>{manualMode?'手动录入创作案例':'上传你的 AI 作品'}</h2>
+              <p style={{color:'var(--text-3)',fontSize:13,marginTop:4}}>{manualMode?'记录你的 Prompt 和生成图，下次直接复用':'AI 视觉模型将自动分析图片并反推中文 Prompt'}</p>
             </div>
             {!hasApi && (
               <div style={{padding:'10px 14px',background:'rgba(255,149,0,.06)',border:'1px solid rgba(255,149,0,.15)',borderRadius:8,marginBottom:14,textAlign:'center'}}>
@@ -698,9 +933,145 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
                 支持 Ctrl+V 直接粘贴截图
               </p>
             </div>
+            {/* Toggle between AI mode and manual mode */}
+            <div style={{textAlign:'center',marginTop:18,paddingTop:14,borderTop:'0.5px solid rgba(0,0,0,0.06)'}}>
+              <button onClick={()=>setManualMode(!manualMode)}
+                style={{fontSize:12,fontWeight:500,color:'var(--accent)',background:'none',border:'none',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,padding:'4px 12px',borderRadius:20,transition:'all .15s ease'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='var(--accent-bg)'}}
+                onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
+                {manualMode?'← 返回 AI 分析模式':'我已有 Prompt，直接录入 →'}
+              </button>
+            </div>
+
+            {/* Manual entry form */}
+            {manualMode && (
+              <div style={{marginTop:16}}>
+                <div style={{marginBottom:12}}>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:5,letterSpacing:'.1px'}}>Prompt *</label>
+                  <textarea value={manualPrompt} onChange={e=>setManualPrompt(e.target.value)} rows={4} placeholder="粘贴或输入你的提示词..." style={{width:'100%',padding:'8px 12px',border:'1px solid rgba(0,0,0,.1)',borderRadius:8,background:'var(--bg)',outline:'none',fontSize:12.5,lineHeight:1.7,resize:'vertical',fontFamily:'inherit',transition:'border-color .2s'}}
+                    onFocus={e=>e.target.style.borderColor='var(--accent)'} onBlur={e=>e.target.style.borderColor='rgba(0,0,0,.1)'}/>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:5,letterSpacing:'.1px'}}>标题（可选）</label>
+                  <input value={manualTitle} onChange={e=>setManualTitle(e.target.value)} placeholder="给这个案例起个名字" style={{width:'100%',padding:'7px 12px',border:'1px solid rgba(0,0,0,.1)',borderRadius:8,background:'var(--bg)',outline:'none',fontSize:12.5,fontFamily:'inherit',transition:'border-color .2s'}}
+                    onFocus={e=>e.target.style.borderColor='var(--accent)'} onBlur={e=>e.target.style.borderColor='rgba(0,0,0,.1)'}/>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:5,letterSpacing:'.1px'}}>负向提示词（可选）</label>
+                  <input value={manualNeg} onChange={e=>setManualNeg(e.target.value)} placeholder="不想要的元素，用顿号分隔" style={{width:'100%',padding:'7px 12px',border:'1px solid rgba(0,0,0,.1)',borderRadius:8,background:'var(--bg)',outline:'none',fontSize:12.5,fontFamily:'inherit',transition:'border-color .2s'}}
+                    onFocus={e=>e.target.style.borderColor='var(--accent)'} onBlur={e=>e.target.style.borderColor='rgba(0,0,0,.1)'}/>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:5,letterSpacing:'.1px'}}>标签（可选，用逗号分隔）</label>
+                  <input value={manualTags} onChange={e=>setManualTags(e.target.value)} placeholder="商品摄影, 产品设计, 写实" style={{width:'100%',padding:'7px 12px',border:'1px solid rgba(0,0,0,.1)',borderRadius:8,background:'var(--bg)',outline:'none',fontSize:12.5,fontFamily:'inherit',transition:'border-color .2s'}}
+                    onFocus={e=>e.target.style.borderColor='var(--accent)'} onBlur={e=>e.target.style.borderColor='rgba(0,0,0,.1)'}/>
+                </div>
+                <div style={{display:'flex',gap:8,marginBottom:12}}>
+                  <div style={{flex:1}}>
+                    <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:5,letterSpacing:'.1px'}}>画幅</label>
+                    <select value={manualRatio} onChange={e=>setManualRatio(e.target.value)} style={{width:'100%',padding:'7px 10px',border:'1px solid rgba(0,0,0,.1)',borderRadius:8,background:'var(--bg)',outline:'none',fontSize:12,fontFamily:'inherit',cursor:'pointer'}}>
+                      <option value="16:9">16:9 横幅</option>
+                      <option value="9:16">9:16 竖幅</option>
+                      <option value="1:1">1:1 方图</option>
+                      <option value="3:4">3:4 竖版</option>
+                      <option value="4:3">4:3 横版</option>
+                      <option value="21:9">21:9 超宽</option>
+                    </select>
+                  </div>
+                  <div style={{flex:1}}>
+                    <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:5,letterSpacing:'.1px'}}>画质</label>
+                    <select value={manualQuality} onChange={e=>setManualQuality(e.target.value)} style={{width:'100%',padding:'7px 10px',border:'1px solid rgba(0,0,0,.1)',borderRadius:8,background:'var(--bg)',outline:'none',fontSize:12,fontFamily:'inherit',cursor:'pointer'}}>
+                      <option value="高清">高清</option>
+                      <option value="超高清">超高清</option>
+                      <option value="超高清8K">超高清 8K</option>
+                    </select>
+                  </div>
+                  <div style={{flex:1}}>
+                    <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:5,letterSpacing:'.1px'}}>风格</label>
+                    <select value={manualStyle} onChange={e=>setManualStyle(e.target.value)} style={{width:'100%',padding:'7px 10px',border:'1px solid rgba(0,0,0,.1)',borderRadius:8,background:'var(--bg)',outline:'none',fontSize:12,fontFamily:'inherit',cursor:'pointer'}}>
+                      <option value="写实">写实</option>
+                      <option value="插画">插画</option>
+                      <option value="3D渲染">3D 渲染</option>
+                      <option value="动漫">动漫</option>
+                      <option value="摄影">摄影</option>
+                      <option value="油画">油画</option>
+                    </select>
+                  </div>
+                </div>
+                {/* AI Decompose button */}
+                {hasApi && manualPrompt.trim() && (
+                  <div style={{marginBottom:14}}>
+                    <button onClick={handleDecompose} disabled={decomposing}
+                      style={{width:'100%',padding:'9px 16px',borderRadius:8,fontSize:12.5,fontWeight:600,cursor:decomposing?'wait':'pointer',
+                        display:'flex',alignItems:'center',justifyContent:'center',gap:6,
+                        background:decomposeResult?'var(--emerald)':'linear-gradient(135deg,var(--accent),#5856D6)',
+                        color:'#fff',border:'none',transition:'all .2s ease',
+                        boxShadow:'0 2px 8px rgba(0,122,255,.2)'}}
+                      onMouseEnter={e=>{if(!decomposing)e.currentTarget.style.boxShadow='0 4px 12px rgba(0,122,255,.3)'}}
+                      onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 2px 8px rgba(0,122,255,.2)'}}>
+                      {decomposing?'AI 拆解中...':decomposeResult?'已拆解，点击重新分析':'AI 智能拆解 Prompt'}
+                    </button>
+                    {decomposeError&&<p style={{fontSize:11,color:'var(--rose)',marginTop:4}}>{decomposeError}</p>}
+                    {/* Decomposition results preview */}
+                    {decomposeResult&&decomposeResult.analysis&&(
+                      <div style={{marginTop:10,padding:'12px 14px',background:'var(--bg)',borderRadius:10,border:'1px solid var(--border-light)'}}>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:8}}>AI 拆解结果</div>
+                        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                          {[
+                            {l:'主体',v:decomposeResult.analysis.subject,e:'🎯'},
+                            {l:'人物',v:decomposeResult.analysis.character,e:'👤'},
+                            {l:'环境',v:decomposeResult.analysis.env,e:'🏞️'},
+                            {l:'风格',v:decomposeResult.analysis.style,e:'🎨'},
+                            {l:'色彩',v:decomposeResult.analysis.color,e:'🌈'},
+                            {l:'构图',v:decomposeResult.analysis.comp,e:'📷'},
+                            {l:'镜头',v:decomposeResult.analysis.lens,e:'🔍'},
+                            {l:'光影',v:decomposeResult.analysis.light,e:'☀️'},
+                          ].map((x,i)=>(
+                            <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',fontSize:11.5,lineHeight:1.5}}>
+                              <span style={{flexShrink:0,fontSize:13}}>{x.e}</span>
+                              <span style={{fontWeight:600,color:'var(--text-3)',flexShrink:0,width:32}}>{x.l}</span>
+                              <span style={{color:x.v==='—'||x.v==='-'?'var(--text-3)':'var(--text)'}}>{x.v||'—'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div style={{marginBottom:14}}>
+                  <label style={{display:'block',fontSize:11,fontWeight:600,color:'var(--text-3)',marginBottom:5,letterSpacing:'.1px'}}>生成图片（可选）</label>
+                  <input ref={manualFileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleManualFile}/>
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                    {manualImg?(
+                      <div style={{position:'relative',display:'inline-block'}}>
+                        <img src={manualImg} alt="" style={{width:80,height:80,borderRadius:8,objectFit:'cover',border:'1px solid rgba(0,0,0,.08)'}}/>
+                        <button onClick={()=>setManualImg(null)} style={{position:'absolute',top:-6,right:-6,width:20,height:20,borderRadius:'50%',background:'var(--rose)',color:'#fff',border:'none',cursor:'pointer',fontSize:11,display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}><IX size={11}/></button>
+                      </div>
+                    ):(
+                      <button onClick={()=>manualFileRef.current?.click()} style={{padding:'8px 16px',borderRadius:8,fontSize:12,fontWeight:500,color:'var(--text-2)',background:'var(--bg)',border:'1.5px dashed rgba(0,0,0,.12)',cursor:'pointer',display:'flex',alignItems:'center',gap:6,transition:'all .15s'}}
+                        onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}
+                        onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(0,0,0,.12)';e.currentTarget.style.color='var(--text-2)'}}>
+                        <IImage size={15}/> 上传图片
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+                  <button onClick={onClose} className="btn-ghost">取消</button>
+                  <button onClick={handleManualSave} disabled={!manualPrompt.trim()} style={{padding:'8px 22px',borderRadius:8,fontSize:13,fontWeight:600,cursor:manualPrompt.trim()?'pointer':'not-allowed',
+                    background:manualPrompt.trim()?'var(--accent)':'rgba(0,0,0,.06)',color:'#fff',border:'none',transition:'all .15s ease',
+                    opacity:manualPrompt.trim()?1:.5}}>
+                    保存到库
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!manualMode && (
             <div style={{display:'flex',justifyContent:'flex-end',marginTop:16}}>
               <button onClick={onClose} className="btn-ghost">取消</button>
             </div>
+            )}
           </div>
         )}
 
@@ -880,7 +1251,7 @@ const SettingsModal=({onClose,apiConfig,setApiConfig})=>{
                   <div style={{width:18,height:18,borderRadius:'50%',border:preset===p.id?'2px solid var(--accent)':'2px solid rgba(0,0,0,.15)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                     {preset===p.id&&<div style={{width:8,height:8,borderRadius:'50%',background:'var(--accent)'}}/>}
                   </div>
-                  <div style={{flex:1}}><div>{p.name}</div>{p.hint&&<div style={{fontSize:10,color:'var(--text-3)',marginTop:1,fontWeight:400}}>{p.hint}</div>}</div>
+                  <div style={{flex:1}}><div>{p.name}</div>{p.hint&&<div style={{fontSize:10,color:'var(--text-3)',marginTop:1,fontWeight:400}}>{p.hint}{p.url&&<a href={p.url} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:'var(--accent)',marginLeft:4,textDecoration:'none',fontWeight:500}} onMouseEnter={e=>e.currentTarget.style.textDecoration='underline'} onMouseLeave={e=>e.currentTarget.style.textDecoration='none'}>{'\u2197 \u83b7\u53d6 Key'}</a>}</div>}</div>
                 </button>
               ))}
             </div>
@@ -929,15 +1300,16 @@ const SettingsModal=({onClose,apiConfig,setApiConfig})=>{
 /* ─── Dashboard ─── */
 const Dashboard=({items,folders,setPage,setViewingItem,setFolderFilter,onUpload})=>{
   const recent=items.slice(0,6);
-  const favCount=items.filter(i=>i.rating>=4).length;
   const usedRecently=[...items].sort((a,b)=>b.uses-a.uses).filter(i=>i.uses>0).slice(0,8);
 
   const StatCard=({label,value,icon,bg})=>(
-    <div className="card" style={{padding:'16px 18px',borderRadius:12,display:'flex',alignItems:'center',gap:14}}>
-      <div style={{width:40,height:40,borderRadius:10,background:bg||'var(--accent-bg)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{icon}</div>
+    <div style={{padding:'18px 20px',borderRadius:14,display:'flex',alignItems:'center',gap:16,background:'var(--surface)',border:'1px solid rgba(0,0,0,.06)',boxShadow:'var(--shadow-sm)',transition:'all .25s ease'}}
+      onMouseEnter={e=>{e.currentTarget.style.boxShadow='var(--shadow-md)';e.currentTarget.style.borderColor='rgba(0,0,0,.1)'}}
+      onMouseLeave={e=>{e.currentTarget.style.boxShadow='var(--shadow-sm)';e.currentTarget.style.borderColor='rgba(0,0,0,.06)'}}>
+      <div style={{width:44,height:44,borderRadius:12,background:bg||'var(--accent-bg)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{icon}</div>
       <div style={{minWidth:0}}>
-        <div style={{fontSize:22,fontWeight:700,letterSpacing:'-.5px',color:'var(--text)',lineHeight:1.1}}>{value}</div>
-        <div style={{fontSize:11.5,color:'var(--text-2)',fontWeight:500,marginTop:2}}>{label}</div>
+        <div style={{fontSize:26,fontWeight:700,letterSpacing:'-.5px',color:'var(--text)',lineHeight:1}}>{value}</div>
+        <div style={{fontSize:12,color:'var(--text-2)',fontWeight:500,marginTop:3}}>{label}</div>
       </div>
     </div>
   );
@@ -946,10 +1318,10 @@ const Dashboard=({items,folders,setPage,setViewingItem,setFolderFilter,onUpload}
     <div className="anim-up" style={{padding:'20px 24px',overflowY:'auto',height:'100%'}}>
       {/* Upload button (top-left, prominent) + title */}
       <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:22}}>
-        <button onClick={onUpload} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 22px',borderRadius:11,background:'linear-gradient(135deg,#007AFF,#5856D6)',color:'#fff',fontSize:14,fontWeight:600,letterSpacing:'-.01em',border:'none',cursor:'pointer',boxShadow:'0 3px 14px rgba(0,122,255,.3)',transition:'all .25s cubic-bezier(.25,.1,.25,1)'}}
-          onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 6px 20px rgba(0,122,255,.35)'}}
-          onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 3px 14px rgba(0,122,255,.3)'}}>
-          <IUpload size={17} color="#fff" sw={2}/> <span>上传作品</span>
+        <button onClick={onUpload} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 24px',borderRadius:12,background:'linear-gradient(135deg,#007AFF 0%,#5856D6 100%)',color:'#fff',fontSize:14,fontWeight:600,letterSpacing:'-.01em',border:'none',cursor:'pointer',boxShadow:'0 2px 12px rgba(0,122,255,.3),0 0 0 0.5px rgba(0,122,255,.2) inset',transition:'all .25s cubic-bezier(.25,.1,.25,1)'}}
+          onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 4px 16px rgba(0,122,255,.35),0 0 0 0.5px rgba(0,122,255,.2) inset'}}
+          onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 2px 12px rgba(0,122,255,.3),0 0 0 0.5px rgba(0,122,255,.2) inset'}}>
+          <IUpload size={16} color="#fff" sw={2}/> <span>上传作品</span>
         </button>
         <div style={{borderLeft:'1px solid rgba(0,0,0,.08)',height:28}}/>
         <div>
@@ -959,27 +1331,24 @@ const Dashboard=({items,folders,setPage,setViewingItem,setFolderFilter,onUpload}
       </div>
 
       {/* Stat cards */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:24}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr',gap:12,marginBottom:24,maxWidth:280}}>
         <StatCard label="Prompt 资产" value={items.length} icon={<IBlocks size={18} color="var(--accent)"/>} bg="rgba(0,122,255,.08)"/>
-        <StatCard label="覆盖平台" value={PLATFORMS.length} icon={<IGrid size={18} color="var(--emerald)"/>} bg="rgba(52,199,89,.08)"/>
-        <StatCard label="精选作品" value={favCount} icon={<ISparkle size={18} color="var(--amber)"/>} bg="rgba(255,149,0,.08)"/>
       </div>
 
       {/* Recent creations - full width */}
       <div style={{marginBottom:24}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-          <h3 style={{fontSize:15,fontWeight:600,letterSpacing:'-.2px'}}>最近创作</h3>
+          <h3 style={{fontSize:15,fontWeight:700,letterSpacing:'-.2px',color:'var(--text)'}}>最近创作</h3>
           <button onClick={()=>setPage('library')} style={{fontSize:12,color:'var(--accent)',fontWeight:500,letterSpacing:'-.01em'}}>查看全部 →</button>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
           {recent.slice(0,4).map((item,i)=>(
             <div key={item.id} className="card anim-up" style={{animationDelay:`${i*0.05}s`,overflow:'hidden',cursor:'pointer',borderRadius:10}}
               onClick={()=>{setViewingItem(item);setPage('library')}}>
-              <img src={item.thumbnail||phImg(item.seed,300,200)} alt="" style={{width:'100%',aspectRatio:'4/3',objectFit:'cover'}}/>
+              <img src={item.thumbnail||phImg(item.seed,300,200)} alt="" style={{width:'100%',display:'block'}}/>
               <div style={{padding:'8px 10px'}}>
                 <div style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-.01em'}}>{item.title}</div>
                 <div style={{display:'flex',alignItems:'center',gap:5,marginTop:4}}>
-                  <span className="tag" style={{background:PLATFORMS.find(p=>p.id===item.platform)?.bg,color:PLATFORMS.find(p=>p.id===item.platform)?.color,fontSize:10,padding:'2px 6px'}}>{PLATFORMS.find(p=>p.id===item.platform)?.name}</span>
                   <span style={{fontSize:10.5,color:'var(--text-3)',marginLeft:'auto'}}>{item.date.slice(5)}</span>
                 </div>
               </div>
@@ -996,12 +1365,9 @@ const Dashboard=({items,folders,setPage,setViewingItem,setFolderFilter,onUpload}
             {usedRecently.slice(0,4).map((item,i)=>(
               <div key={item.id} className="card anim-up" style={{animationDelay:`${i*0.04}s`,display:'flex',gap:12,padding:10,cursor:'pointer',alignItems:'center',borderRadius:10}}
                 onClick={()=>{setViewingItem(item);setPage('library')}}>
-                <img src={item.thumbnail||phImg(item.seed,80,80)} alt="" style={{width:48,height:48,borderRadius:8,objectFit:'cover',flexShrink:0}}/>
+                <img src={item.thumbnail||phImg(item.seed,80,80)} alt="" style={{width:48,height:48,borderRadius:8,objectFit:'contain',background:'#F5F5F7',flexShrink:0}}/>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-.01em'}}>{item.title}</div>
-                  <div style={{display:'flex',alignItems:'center',gap:6,marginTop:3}}>
-                    <span className="tag" style={{background:PLATFORMS.find(p=>p.id===item.platform)?.bg,color:PLATFORMS.find(p=>p.id===item.platform)?.color,fontSize:10,padding:'2px 6px'}}>{PLATFORMS.find(p=>p.id===item.platform)?.name}</span>
-                  </div>
                 </div>
               </div>
             ))}
@@ -1015,20 +1381,14 @@ const Dashboard=({items,folders,setPage,setViewingItem,setFolderFilter,onUpload}
 /* ─── Prompt Card (for Library) ─── */
 const PCard=({item,onClick,i})=>{
   const plat=PLATFORMS.find(p=>p.id===item.platform);
-  const heights=[180,210,160,230,190,170,220,185,200,155,180,210];
-  const h=heights[item.id%heights.length];
   const [hovered,setHovered]=React.useState(false);
-  const [fav,setFav]=React.useState(item.rating>=4);
+  const [fav,setFav]=React.useState(false);
   return(
     <div className="card anim-up" style={{animationDelay:`${(i||0)*0.03}s`,breakInside:'avoid',marginBottom:12,overflow:'hidden',cursor:'pointer',position:'relative',borderRadius:12,transition:'all .25s cubic-bezier(.25,.1,.25,1)',transform:hovered?'translateY(-2px)':'none',boxShadow:hovered?'var(--shadow-md)':'var(--shadow-sm)'}}
       onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)}
       onClick={()=>onClick(item)}>
       <div style={{position:'relative'}}>
-        <img src={item.thumbnail||phImg(item.seed,400,h)} alt="" style={{width:'100%',height:h,objectFit:'cover',display:'block'}}/>
-        <div style={{position:'absolute',top:8,left:8,display:'flex',gap:4}}>
-          <span className="tag" style={{background:'rgba(255,255,255,.88)',backdropFilter:'blur(8px)',color:plat?.color,fontWeight:600,fontSize:10,padding:'2px 7px'}}>{plat?.name}</span>
-        </div>
-        {item.rating>=4&&<div style={{position:'absolute',top:8,right:8,background:'rgba(255,255,255,.88)',backdropFilter:'blur(8px)',borderRadius:6,padding:'2px 6px',fontSize:11,color:'#FF9500',fontWeight:600}}>★ {item.rating}</div>}
+        <img src={item.thumbnail||phImg(item.seed,400,300)} alt="" style={{width:'100%',display:'block'}}/>
         {/* Hover overlay */}
         <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(2px)',opacity:hovered?1:0,transition:'opacity .2s ease',display:'flex',alignItems:'center',justifyContent:'center',gap:8,flexWrap:'wrap',padding:16}}>
           <button onClick={e=>{e.stopPropagation();onClick(item)}} style={{width:36,height:36,borderRadius:8,background:'rgba(255,255,255,.2)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}} title="查看"><IEdit size={15} color="#fff"/></button>
@@ -1054,6 +1414,7 @@ const PCard=({item,onClick,i})=>{
 /* ─── Detail Panel ─── */
 const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
   const [tab,setTab]=useState('analysis');
+  const [targetPlat,setTargetPlat]=useState(item.platform);
   const [copied,setCopied]=useState(false);
   const [editing,setEditing]=useState(false);
   const [editData,setEditData]=useState(null);
@@ -1061,6 +1422,54 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
   const plat=PLATFORMS.find(p=>p.id===item.platform);
   const copyText=(t)=>{navigator.clipboard?.writeText(t);setCopied(true);setTimeout(()=>setCopied(false),2000)};
   const a=item.analysis;
+  const [moduleEditing,setModuleEditing]=useState(false);
+  const [editModules,setEditModules]=useState(null);
+  const [reassembling,setReassembling]=useState(false);
+  const [reassembledPrompt,setReassembledPrompt]=useState(null);
+  const [editingModuleKey,setEditingModuleKey]=useState(null);
+  const [editingModuleVal,setEditingModuleVal]=useState('');
+  const reassembleAbortRef=useRef(null);
+
+  const initModules=()=>{
+    const a=item.analysis;
+    if(!a)return;
+    setEditModules({
+      '主体':a.subject||'',
+      '人物':a.character||'',
+      '环境':a.env||'',
+      '风格':a.style||'',
+      '色彩':a.color||'',
+      '构图':a.comp||'',
+      '镜头':a.lens||'',
+      '光影':a.light||'',
+    });
+    setModuleEditing(true);
+    setReassembledPrompt(null);
+  };
+
+  const handleReassemble=async()=>{
+    if(!editModules)return;
+    const cfg=typeof getApiConfig==='function'?getApiConfig():null;
+    if(!cfg||!cfg.apiKey)return;
+    setReassembling(true);setReassembledPrompt(null);
+    const controller=new AbortController();
+    reassembleAbortRef.current=controller;
+    try{
+      const result=await reassemblePrompt(editModules,item.prompt,cfg,controller.signal);
+      if(!controller.signal.aborted)setReassembledPrompt(result);
+    }catch(err){if(err.name!=='AbortError')console.warn('重组失败:',err)}
+    finally{setReassembling(false)}
+  };
+
+  const startEditModule=(key,val)=>{setEditingModuleKey(key);setEditingModuleVal(val)};
+  const saveEditModule=()=>{
+    if(editingModuleKey&&editModules){
+      setEditModules(prev=>({...prev,[editingModuleKey]:editingModuleVal}));
+    }
+    setEditingModuleKey(null);setEditingModuleVal('');
+  };
+
+  const fullPrompt=(p)=>{const ratio=item.params?.['\u753b\u5e45'];return ratio&&p&&!p.includes(ratio)?p+'\uff0c'+ratio:p;};
 
   const startEdit=()=>{setEditData({title:item.title,prompt:item.prompt,neg:item.neg||'',note:item.note||'',platform:item.platform,rating:item.rating,tags:item.tags.join(', '),folder:item.folder||'\u672a\u5206\u7c7b'});setEditing(true)};
   const cancelEdit=()=>{setEditing(false);setEditData(null)};
@@ -1089,6 +1498,7 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
   const tabs=[
     {id:'analysis',label:'AI \u89e3\u6790',icon:<IWand size={14}/>},
     {id:'prompt',label:'Prompt',icon:<IEdit size={14}/>},
+    {id:'versions',label:'\u7248\u672c',icon:<IHistory size={14}/>,badge:item.versions?item.versions.length:0},
     {id:'meta',label:'\u53c2\u6570',icon:<ISliders size={14}/>},
     {id:'notes',label:'\u7b14\u8bb0',icon:<IFolder size={14}/>},
   ];
@@ -1102,54 +1512,80 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
       <h3 style={{fontSize:16,fontWeight:600,marginBottom:4,letterSpacing:'-.02em'}}>{'\u786e\u8ba4\u5220\u9664\uff1f'}</h3>
       <p style={{fontSize:13,color:'var(--text-3)',textAlign:'center',marginBottom:20,lineHeight:1.5}}>{'\u300c'}{item.title}{'\u300d\u5c06\u88ab\u79fb\u5165\u56de\u6536\u7ad9\u3002'}<br/>7 {'\u5929\u540e\u81ea\u52a8\u5f7b\u5e95\u5220\u9664\uff0c\u671f\u95f4\u53ef\u968f\u65f6\u6062\u590d\u3002'}</p>
       <div style={{display:'flex',gap:8}}>
-        <button onClick={()=>setConfirmDel(false)} className="btn-ghost">{'\u53d6\u6d88'}</button>
+        <button onClick={()=>setConfirmDel(false)} className="btn-ghost">{'取消'}</button>
         <button onClick={handleDelete} style={{padding:'7px 18px',borderRadius:8,background:'var(--rose)',color:'#fff',border:'none',fontSize:13,fontWeight:500,cursor:'pointer'}}>{'\u786e\u8ba4\u5220\u9664'}</button>
       </div>
     </div>
   );
 
   return(
-    <div className="anim-slide" style={{width:400,height:'100%',background:'var(--surface)',borderLeft:'0.5px solid rgba(0,0,0,0.08)',display:'flex',flexDirection:'column',flexShrink:0,overflowY:'auto'}}>
-      {/* Header */}
-      <div style={{padding:'14px 18px',display:'flex',alignItems:'center',gap:10,borderBottom:'0.5px solid rgba(0,0,0,0.06)',flexShrink:0}}>
-        <button onClick={onClose} style={{color:'var(--text-3)',padding:4,borderRadius:6,display:'flex',transition:'all .15s'}}
-          onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,0,0,.04)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
-          <IX size={17}/>
-        </button>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:15,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-.02em'}}>{item.title}</div>
-          <div style={{display:'flex',gap:6,marginTop:2,alignItems:'center'}}>
-            <span className="tag" style={{background:plat?.bg,color:plat?.color,fontSize:10}}>{plat?.name}</span>
-            <span style={{fontSize:11,color:'var(--text-3)'}}>{item.date}</span>
+    <div style={{position:'fixed',inset:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeInBg .2s ease both'}} onClick={onClose}>
+      {/* Backdrop */}
+      <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(6px)'}}/>
+      {/* Center Modal (Xiaohongshu style) */}
+      <div onClick={e=>e.stopPropagation()} style={{position:'relative',width:'78vw',maxWidth:1100,height:'80vh',minHeight:480,background:'var(--surface)',borderRadius:16,boxShadow:'0 20px 60px rgba(0,0,0,.18),0 4px 20px rgba(0,0,0,.08)',display:'flex',flexDirection:'column',animation:'scaleUp .3s cubic-bezier(.25,.1,.25,1) both',overflow:'hidden'}}>
+        {/* Header */}
+        <div style={{padding:'6px 20px 8px',display:'flex',alignItems:'center',gap:10,borderBottom:'0.5px solid rgba(0,0,0,0.06)',flexShrink:0}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:15,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-.02em'}}>{item.title}</div>
+            <div style={{display:'flex',gap:6,marginTop:2,alignItems:'center',flexWrap:'wrap'}}>
+              <span style={{fontSize:11,color:'var(--text-3)'}}>{item.date}</span>
+              {item.versions&&item.versions.length>1&&<span style={{fontSize:10,fontWeight:600,color:'var(--accent)',background:'var(--accent-bg)',padding:'1px 6px',borderRadius:10,border:'1px solid var(--accent-border)'}}>v{item.versions[item.versions.length-1].v}</span>}
+              {item.derivedFrom&&<span style={{fontSize:10,fontWeight:500,color:'var(--violet)',background:'rgba(175,82,222,.06)',padding:'1px 6px',borderRadius:10,border:'1px solid rgba(175,82,222,.2)',display:'inline-flex',alignItems:'center',gap:2}}><ILink size={9}/> {'\u6d3e\u751f\u81ea'} {item.derivedFrom.caseTitle}</span>}
+            </div>
           </div>
-        </div>
-        <button onClick={()=>{if(editing)saveEdit();else startEdit()}} style={{padding:'5px 10px',borderRadius:6,fontSize:12,fontWeight:500,cursor:'pointer',display:'flex',alignItems:'center',gap:4,
-          background:editing?'var(--accent)':'transparent',color:editing?'#fff':'var(--text-2)',border:editing?'none':'1px solid rgba(0,0,0,.1)',transition:'all .15s ease',letterSpacing:'-.01em'}}>
-          {editing?<><ICheck size={13}/> {'\u4fdd\u5b58'}</>:<><IEdit size={13}/> {'\u7f16\u8f91'}</>}
-        </button>
-        <button onClick={()=>setConfirmDel(true)} style={{padding:'5px 8px',borderRadius:6,fontSize:12,cursor:'pointer',color:'var(--rose)',background:'transparent',border:'1px solid rgba(255,59,48,.15)',transition:'all .15s ease'}} title={'\u5220\u9664'}
-          onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,59,48,.06)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
-          <ITrash size={13}/>
-        </button>
-      </div>
-
-      {/* Image */}
-      <div style={{padding:16,flexShrink:0}}>
-        <img src={item.thumbnail||phImg(item.seed,400,280)} alt="" style={{width:'100%',borderRadius:10,display:'block'}}/>
-      </div>
-
-      {/* Tabs */}
-      <div style={{padding:'0 18px',display:'flex',gap:0,borderBottom:'0.5px solid rgba(0,0,0,0.06)',flexShrink:0}}>
-        {tabs.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)}
-            style={{padding:'9px 11px',fontSize:12,fontWeight:tab===t.id?600:400,color:tab===t.id?'var(--accent)':'var(--text-3)',borderBottom:tab===t.id?'2px solid var(--accent)':'2px solid transparent',transition:'all .15s ease',display:'flex',alignItems:'center',gap:4,letterSpacing:'-.01em'}}>
-            {t.icon}{t.label}
+          <button onClick={()=>{if(editing)saveEdit();else startEdit()}} style={{padding:'5px 12px',borderRadius:6,fontSize:12,fontWeight:500,cursor:'pointer',display:'flex',alignItems:'center',gap:4,
+            background:editing?'var(--accent)':'transparent',color:editing?'#fff':'var(--text-2)',border:editing?'none':'1px solid rgba(0,0,0,.1)',transition:'all .15s ease',letterSpacing:'-.01em'}}>
+            {editing?<><ICheck size={13}/> {'\u4fdd\u5b58'}</>:<><IEdit size={13}/> {'\u7f16\u8f91'}</>}
           </button>
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      <div style={{padding:16,flex:1}}>
+          <button onClick={()=>setConfirmDel(true)} style={{padding:'5px 8px',borderRadius:6,fontSize:12,cursor:'pointer',color:'var(--rose)',background:'transparent',border:'1px solid rgba(255,59,48,.15)',transition:'all .15s ease'}} title={'\u5220\u9664'}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,59,48,.06)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
+            <ITrash size={13}/>
+          </button>
+          <button onClick={onClose} style={{color:'var(--text-3)',padding:6,borderRadius:8,display:'flex',transition:'all .15s'}}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,0,0,.04)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
+            <IX size={18}/>
+          </button>
+        </div>
+        {/* Horizontal layout: Image left + Content right */}
+        <div style={{flex:1,display:'flex',overflow:'hidden'}}>
+          {/* Left: Image + Prompt preview + Tags */}
+          <div style={{width:'48%',flexShrink:0,overflowY:'auto',padding:'16px 20px',background:'#FAFAFA'}}>
+            <img src={item.thumbnail||phImg(item.seed,400,300)} alt="" style={{width:'100%',borderRadius:12,display:'block',marginBottom:12}}/>
+            <div onClick={()=>setTab('prompt')} style={{padding:'10px 12px',background:'var(--accent-bg)',borderRadius:10,border:'1px solid var(--accent-border)',cursor:'pointer',transition:'all .2s ease',position:'relative'}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,122,255,.35)';e.currentTarget.style.boxShadow='0 2px 8px rgba(0,122,255,.08)'}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--accent-border)';e.currentTarget.style.boxShadow='none'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
+                <span style={{fontSize:10,fontWeight:700,color:'var(--accent)',textTransform:'uppercase',letterSpacing:'.5px',display:'flex',alignItems:'center',gap:4}}><IEdit size={11}/> Prompt</span>
+                <button onClick={e=>{e.stopPropagation();copyText(fullPrompt(item.prompt))}} style={{display:'flex',alignItems:'center',gap:3,fontSize:10,color:copied?'var(--emerald)':'var(--accent)',fontWeight:600,padding:'2px 6px',borderRadius:4,transition:'all .15s'}}
+                  onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,122,255,.1)'}} onMouseLeave={e=>{e.currentTarget.style.background='transparent'}}>
+                  {copied?<ICheck size={11}/>:<ICopy size={11}/>} {copied?'\u5df2\u590d\u5236':'\u590d\u5236'}
+                </button>
+              </div>
+              <div style={{fontSize:12,lineHeight:1.65,color:'var(--text-2)',display:'-webkit-box',WebkitLineClamp:6,WebkitBoxOrient:'vertical',overflow:'hidden',wordBreak:'break-word'}}>
+                {fullPrompt(item.prompt)}
+              </div>
+              {item.prompt.length>80&&<div style={{marginTop:4,fontSize:10,color:'var(--accent)',fontWeight:500}}>{'\u70b9\u51fb\u67e5\u770b\u5168\u6587 \u203a'}</div>}
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:12}}>
+              {item.tags.map(t=><span key={t} className="tag" style={{background:'var(--surface-alt)',color:'var(--text-2)',padding:'2px 8px',borderRadius:12,fontSize:10.5}}>#{t}</span>)}
+            </div>
+          </div>
+          {/* Right: Tabs + Content */}
+          <div style={{flex:1,display:'flex',flexDirection:'column',borderLeft:'0.5px solid rgba(0,0,0,0.06)',overflow:'hidden'}}>
+            {/* Tabs */}
+            <div style={{padding:'0 20px',display:'flex',gap:2,borderBottom:'0.5px solid rgba(0,0,0,0.06)',flexShrink:0}}>
+              {tabs.map(t=>(
+                <button key={t.id} onClick={()=>setTab(t.id)}
+                  style={{padding:'10px 14px',fontSize:12,fontWeight:tab===t.id?600:400,color:tab===t.id?'var(--accent)':'var(--text-3)',borderBottom:tab===t.id?'2px solid var(--accent)':'2px solid transparent',transition:'all .2s ease',display:'flex',alignItems:'center',gap:5,letterSpacing:'-.01em',borderRadius:'8px 8px 0 0'}}
+                  onMouseEnter={e=>{if(tab!==t.id)e.currentTarget.style.color='var(--text-2)'}}
+                  onMouseLeave={e=>{if(tab!==t.id)e.currentTarget.style.color='var(--text-3)'}}>
+                  <span style={{opacity:tab===t.id?1:.6}}>{t.icon}</span>{t.label}{t.badge>0&&<span style={{fontSize:9,fontWeight:700,background:tab===t.id?'var(--accent)':'var(--accent-bg)',color:tab===t.id?'#fff':'var(--accent)',borderRadius:8,padding:'0 5px',minWidth:16,textAlign:'center',lineHeight:'16px'}}>{t.badge}</span>}
+                </button>
+              ))}
+            </div>
+            {/* Tab Content */}
+            <div style={{padding:12,flex:1,overflowY:'auto'}}>
         {tab==='analysis' && a && (
           <div className="anim-fade">
             {/* Chips */}
@@ -1191,7 +1627,7 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
             <div style={{marginBottom:16}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
                 <span style={{fontSize:11,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.5px'}}>{'\u6b63\u5411\u63d0\u793a\u8bcd'}</span>
-                <button onClick={()=>copyText(editing?editData.prompt:item.prompt)} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:copied?'var(--emerald)':'var(--accent)',fontWeight:600}}>
+                <button onClick={()=>copyText(editing?editData.prompt:fullPrompt(item.prompt))} style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:copied?'var(--emerald)':'var(--accent)',fontWeight:600}}>
                   {copied?<ICheck size={13}/>:<ICopy size={13}/>} {copied?'\u5df2\u590d\u5236':'\u590d\u5236'}
                 </button>
               </div>
@@ -1199,18 +1635,108 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
                 <textarea value={editData.prompt} onChange={e=>setEditData(d=>({...d,prompt:e.target.value}))} rows={5} style={{...inpStyle,lineHeight:1.7,resize:'vertical'}}/>
               ):(
                 <div style={{padding:14,background:'var(--accent-bg)',borderRadius:10,fontSize:12.5,lineHeight:1.7,border:'1px solid var(--accent-border)',wordBreak:'break-word'}}>
-                  {item.prompt}
+                  {fullPrompt(item.prompt)}
                 </div>
               )}
             </div>
+            {/* Module Editor */}
+            {item.analysis && !editing && (
+              <div style={{marginBottom:16,padding:'14px 0',borderTop:'0.5px solid rgba(0,0,0,0.06)'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.5px',display:'flex',alignItems:'center',gap:4}}>
+                    <ISliders size={12}/> Prompt 模块编辑
+                  </span>
+                  {!moduleEditing?(
+                    <button onClick={initModules} style={{fontSize:11,color:'var(--accent)',fontWeight:600,padding:'3px 10px',borderRadius:12,background:'var(--accent-bg)',border:'1px solid var(--accent-border)',cursor:'pointer'}}>开始编辑</button>
+                  ):(
+                    <button onClick={()=>{setModuleEditing(false);setReassembledPrompt(null)}} style={{fontSize:11,color:'var(--text-3)',fontWeight:500,padding:'3px 10px',borderRadius:12,background:'var(--bg)',border:'1px solid var(--border)',cursor:'pointer'}}>取消</button>
+                  )}
+                </div>
+                {moduleEditing && editModules && (
+                  <div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:12}}>
+                      {Object.entries(editModules).map(([key,val])=>(
+                        <div key={key} onClick={()=>{if(!val||val==='—'){startEditModule(key,'')}else{startEditModule(key,val)}}}
+                          style={{display:'inline-flex',alignItems:'center',gap:4,padding:'6px 12px',borderRadius:20,fontSize:11.5,fontWeight:500,cursor:'pointer',transition:'all .15s',
+                            background:'var(--bg)',border:'1.5px solid var(--border-light)',
+                            position:'relative'}}
+                          onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.background='var(--accent-bg)'}}
+                          onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-light)';e.currentTarget.style.background='var(--bg)'}}>
+                          <span style={{fontSize:10,fontWeight:700,color:'var(--text-3)'}}>{key}</span>
+                          <span style={{color:val&&val!=='—'?'var(--text)':'var(--text-3)',maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{val||'点击编辑'}</span>
+                          <IEdit size={10} color="var(--text-3)"/>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Inline edit popup */}
+                    {editingModuleKey && (
+                      <div style={{marginBottom:12,padding:'10px 14px',background:'var(--accent-bg)',borderRadius:10,border:'1.5px solid var(--accent-border)'}}>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--accent)',marginBottom:6}}>{'编辑：' + editingModuleKey}</div>
+                        <textarea value={editingModuleVal} onChange={e=>setEditingModuleVal(e.target.value)} rows={2}
+                          style={{width:'100%',padding:'6px 10px',border:'1px solid rgba(0,0,0,.1)',borderRadius:6,background:'#fff',outline:'none',fontSize:12,lineHeight:1.6,resize:'vertical',fontFamily:'inherit'}}
+                          autoFocus/>
+                        <div style={{display:'flex',gap:6,marginTop:6,justifyContent:'flex-end'}}>
+                          <button onClick={()=>{setEditingModuleKey(null);setEditingModuleVal('')}} style={{fontSize:11,color:'var(--text-3)',padding:'3px 10px',borderRadius:6,background:'var(--bg)',border:'1px solid var(--border)',cursor:'pointer'}}>取消</button>
+                          <button onClick={saveEditModule} style={{fontSize:11,color:'#fff',padding:'3px 10px',borderRadius:6,background:'var(--accent)',border:'none',cursor:'pointer',fontWeight:600}}>确认</button>
+                        </div>
+                      </div>
+                    )}
+                    {/* Reassemble button */}
+                    <button onClick={handleReassemble} disabled={reassembling}
+                      style={{width:'100%',padding:'8px 14px',borderRadius:8,fontSize:12,fontWeight:600,cursor:reassembling?'wait':'pointer',
+                        display:'flex',alignItems:'center',justifyContent:'center',gap:6,
+                        background:reassembledPrompt?'var(--emerald)':'linear-gradient(135deg,#AF52DE,#FF2D55)',
+                        color:'#fff',border:'none',boxShadow:'0 2px 8px rgba(175,82,222,.25)',transition:'all .2s ease'}}
+                      onMouseEnter={e=>{if(!reassembling)e.currentTarget.style.boxShadow='0 4px 12px rgba(175,82,222,.35)'}}
+                      onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 2px 8px rgba(175,82,222,.25)'}}>
+                      {reassembling?'AI 重组优化中...':reassembledPrompt?'已重组，点击重新生成':'AI 重组优化'}
+                    </button>
+                    {/* Reassembled result */}
+                    {reassembledPrompt && (
+                      <div style={{marginTop:10,padding:'12px 14px',background:'rgba(175,82,222,.04)',borderRadius:10,border:'1px solid rgba(175,82,222,.2)'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                          <span style={{fontSize:10,fontWeight:700,color:'var(--violet)',textTransform:'uppercase',letterSpacing:'.5px'}}>AI 重组结果</span>
+                          <button onClick={()=>{navigator.clipboard?.writeText(reassembledPrompt.reassembled);setCopied(true);setTimeout(()=>setCopied(false),2000)}}
+                            style={{fontSize:10,color:copied?'var(--emerald)':'var(--violet)',fontWeight:600,display:'flex',alignItems:'center',gap:3}}>
+                            {copied?<ICheck size={11}/>:<ICopy size={11}/>} {copied?'已复制':'复制'}
+                          </button>
+                        </div>
+                        <div style={{fontSize:12,lineHeight:1.7,color:'var(--text)',wordBreak:'break-word'}}>{reassembledPrompt.reassembled}</div>
+                        {reassembledPrompt.tips&&<p style={{fontSize:10.5,color:'var(--text-3)',marginTop:6,marginBottom:0}}>{reassembledPrompt.tips}</p>}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
-              <span style={{fontSize:11,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.5px'}}>{'\u8d1f\u5411\u63d0\u793a\u8bcd'}</span>
+              <span style={{fontSize:11,fontWeight:700,color:'var(--text-3)',textTransform:'uppercase',letterSpacing:'.5px'}}>负向提示词</span>
               {editing?(
                 <textarea value={editData.neg} onChange={e=>setEditData(d=>({...d,neg:e.target.value}))} rows={2} style={{...inpStyle,lineHeight:1.6,marginTop:6,resize:'vertical'}}/>
               ):(
                 <div style={{padding:12,background:'#FFF5F5',borderRadius:10,fontSize:12.5,lineHeight:1.6,color:'#C0392B',border:'1px solid #FDECEC',marginTop:6}}>{item.neg||'\u65e0'}</div>
               )}
             </div>
+            {!editing && (
+              <div style={{marginTop:16,padding:'14px 0',borderTop:'0.5px solid rgba(0,0,0,0.06)'}}>
+                <button onClick={()=>{navigator.clipboard?.writeText(fullPrompt(item.prompt));setCopied(true);setTimeout(()=>setCopied(false),2500)}}
+                  style={{width:'100%',padding:'10px 16px',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,
+                    background:'linear-gradient(135deg,var(--accent),#5856D6)',color:'#fff',border:'none',
+                    boxShadow:'0 2px 12px rgba(0,122,255,.25)',transition:'all .2s ease',letterSpacing:'-.01em'}}
+                  onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 4px 16px rgba(0,122,255,.35)';e.currentTarget.style.transform='translateY(-1px)'}}
+                  onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 2px 12px rgba(0,122,255,.25)';e.currentTarget.style.transform='translateY(0)'}}>
+                  {copied?<ICheck size={16}/>:<IZapSmall size={16}/>}
+                  {copied?'Prompt \u5df2\u590d\u5236\uff0c\u7c98\u8d34\u5230\u4efb\u610f AI \u5e73\u53f0\u751f\u6210':'\u57fa\u4e8e\u6b64 Prompt \u521b\u4f5c'}
+                </button>
+                {item.derivedFrom&&(
+                  <div style={{marginTop:10,display:'flex',alignItems:'center',gap:6,padding:'8px 12px',background:'rgba(175,82,222,.04)',borderRadius:8,border:'1px solid rgba(175,82,222,.12)'}}>
+                    <ILink size={13} color="var(--violet)"/>
+                    <span style={{fontSize:11.5,color:'var(--text-2)'}}>{'\u6d3e\u751f\u81ea\u300c'}<strong style={{color:'var(--violet)',fontWeight:600}}>{item.derivedFrom.caseTitle}</strong>{'\u300d'}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1226,16 +1752,6 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
                 ))}
                 {Object.keys(item.params||{}).length===0&&<span style={{fontSize:12,color:'var(--text-3)'}}>{'\u65e0\u53c2\u6570'}</span>}
               </div>
-            </div>
-            <div style={{marginBottom:16}}>
-              <span style={labelStyle}>{'\u5e73\u53f0'}</span>
-              {editing?(
-                <select value={editData.platform} onChange={e=>setEditData(d=>({...d,platform:e.target.value}))} style={{...inpStyle,marginTop:4,cursor:'pointer'}}>
-                  {PLATFORMS.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              ):(
-                <div style={{marginTop:6}}><span className="tag" style={{background:plat?.bg,color:plat?.color,padding:'4px 12px'}}>{plat?.name}</span></div>
-              )}
             </div>
             <div style={{marginBottom:16}}>
               <span style={labelStyle}>{'\u6240\u5c5e\u6536\u85cf\u5939'}</span>
@@ -1257,7 +1773,7 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
                       {f.icon} {f.name}
                     </button>
                   ))}
-                  <button onClick={()=>onUpdate({...item,folder:'\u672a\u5206\u7c7b'})}
+                  <button onClick={()=>onUpdate({...item,folder:'未分类'})}
                     style={{padding:'4px 10px',borderRadius:20,fontSize:11,fontWeight:item.folder==='\u672a\u5206\u7c7b'||!item.folder?600:400,cursor:'pointer',transition:'all .15s',
                       background:(item.folder==='\u672a\u5206\u7c7b'||!item.folder)?'var(--accent-bg)':'var(--surface-alt)',
                       color:(item.folder==='\u672a\u5206\u7c7b'||!item.folder)?'var(--accent)':'var(--text-3)',
@@ -1267,20 +1783,72 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
                 </div>
               )}
             </div>
-            <div>
-              <span style={labelStyle}>{'\u8bc4\u5206'}</span>
-              {editing?(
-                <div style={{display:'flex',gap:6,marginTop:4}}>
-                  {[1,2,3,4,5].map(r=>(
-                    <button key={r} onClick={()=>setEditData(d=>({...d,rating:r}))} style={{padding:'6px 10px',borderRadius:8,border:editData.rating>=r?'2px solid #F59E0B':'1.5px solid var(--border)',background:editData.rating>=r?'#FFFBEB':'var(--bg)',cursor:'pointer',fontSize:14}}>
-                      {editData.rating>=r?'\u2605':'\u2606'}
-                    </button>
-                  ))}
-                </div>
-              ):(
-                <span style={{color:'#F59E0B',fontSize:14}}>{'\u2605'.repeat(item.rating)}{'\u2606'.repeat(5-item.rating)}</span>
-              )}
-            </div>
+          </div>
+        )}
+
+        {tab==='versions' && (
+          <div className="anim-fade">
+            {(!item.versions||item.versions.length===0)?(
+              <div style={{textAlign:'center',padding:40,color:'var(--text-3)'}}>
+                <IHistory size={32} color="var(--text-3)"/>
+                <p style={{marginTop:12,fontSize:13}}>{'\u6682\u65e0\u7248\u672c\u8bb0\u5f55'}</p>
+                <p style={{fontSize:12,marginTop:4}}>{'\u7f16\u8f91 Prompt \u540e\u81ea\u52a8\u751f\u6210\u65b0\u7248\u672c'}</p>
+              </div>
+            ):(
+              <div style={{position:'relative'}}>
+                {/* Timeline line */}
+                <div style={{position:'absolute',left:15,top:20,bottom:20,width:2,background:'linear-gradient(to bottom,var(--accent),var(--violet))',borderRadius:1,opacity:.15}}/>
+                {/* Version entries */}
+                {[...item.versions].reverse().map((ver,idx)=>{
+                  const isLatest=idx===0;
+                  const total=item.versions.length;
+                  return (
+                    <div key={ver.v} className="anim-up" style={{animationDelay:`${idx*0.06}s`,display:'flex',gap:14,marginBottom:idx<total-1?16:0,position:'relative'}}>
+                      {/* Dot */}
+                      <div style={{width:32,height:32,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,
+                        background:isLatest?'linear-gradient(135deg,var(--accent),#5856D6)':'var(--bg)',
+                        color:isLatest?'#fff':'var(--text-3)',
+                        border:isLatest?'none':'1.5px solid var(--border)',
+                        boxShadow:isLatest?'0 2px 8px rgba(0,122,255,.3)':'none'}}>
+                        v{ver.v}
+                      </div>
+                      {/* Content */}
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4,flexWrap:'wrap'}}>
+                          <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{ver.note||'\u65e0\u5907\u6ce8'}</span>
+                          {isLatest&&<span style={{fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:6,background:'var(--accent-bg)',color:'var(--accent)',border:'1px solid var(--accent-border)'}}>{'\u6700\u65b0'}</span>}
+                          <span style={{fontSize:10.5,color:'var(--text-3)'}}>{ver.date}</span>
+                        </div>
+                        {/* Collapsible prompt preview */}
+                        <details style={{marginBottom:2}}>
+                          <summary style={{fontSize:11,color:'var(--accent)',cursor:'pointer',fontWeight:500,letterSpacing:'-.01em',userSelect:'none',outline:'none',listStyle:'none',display:'flex',alignItems:'center',gap:4}}>
+                            <span style={{display:'inline-flex',transform:'rotate(0deg)',transition:'transform .15s'}}>{'\u25b6'}</span>
+                            {'\u67e5\u770b Prompt'}
+                          </summary>
+                          <div style={{marginTop:6,padding:10,background:'var(--bg)',borderRadius:8,border:'1px solid var(--border-light)',fontSize:11.5,lineHeight:1.6,color:'var(--text-2)',wordBreak:'break-word',maxHeight:120,overflowY:'auto'}}>
+                            {ver.prompt}
+                          </div>
+                          {ver.neg&&(
+                            <div style={{marginTop:4,padding:8,background:'#FFF5F5',borderRadius:6,fontSize:11,lineHeight:1.5,color:'#C0392B',border:'1px solid #FDECEC'}}>
+                              {'\u8d1f\u5411: '}{ver.neg}
+                            </div>
+                          )}
+                          {ver.params&&Object.keys(ver.params).length>0&&(
+                            <div style={{marginTop:4,display:'flex',flexWrap:'wrap',gap:4}}>
+                              {Object.entries(ver.params).map(([k,v])=>(
+                                <span key={k} style={{padding:'2px 8px',borderRadius:12,fontSize:10,background:'var(--surface-alt)',color:'var(--text-3)',border:'1px solid var(--border-light)'}}>
+                                  {k}: {String(v)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </details>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -1308,6 +1876,10 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
             </div>
           </div>
         )}
+
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1327,7 +1899,6 @@ const Library=({items,viewingItem,setViewingItem,onUpdate,onDelete,folderFilter,
     if(platFilter!=='all')r=r.filter(i=>i.platform===platFilter);
     if(tagFilter!=='all')r=r.filter(i=>i.tags.includes(tagFilter));
     if(sort==='date')r.sort((a,b)=>new Date(b.date)-new Date(a.date));
-    if(sort==='rating')r.sort((a,b)=>b.rating-a.rating);
     if(sort==='uses')r.sort((a,b)=>b.uses-a.uses);
     return r;
   },[items,platFilter,tagFilter,sort]);
@@ -1349,11 +1920,6 @@ const Library=({items,viewingItem,setViewingItem,onUpdate,onDelete,folderFilter,
           </div>
         )}
         <div style={{width:1,height:18,background:'rgba(0,0,0,.08)',margin:'0 4px'}}/>
-        <button onClick={()=>setPlatFilter('all')} style={chipBtn(platFilter==='all')}>{'\u5168\u90e8'}</button>
-        {PLATFORMS.map(p=>(
-          <button key={p.id} onClick={()=>setPlatFilter(p.id)} style={chipBtn(platFilter===p.id)}>{p.name}</button>
-        ))}
-        <div style={{width:1,height:18,background:'rgba(0,0,0,.08)',margin:'0 4px'}}/>
         <button onClick={()=>setTagsExpanded(!tagsExpanded)} style={{padding:'4px 11px',borderRadius:20,fontSize:11.5,fontWeight:tagFilter!=='all'?600:500,cursor:'pointer',transition:'all .15s ease',
           background:tagFilter!=='all'?'var(--accent)':'var(--surface)',color:tagFilter!=='all'?'#fff':'var(--text-2)',
           border:tagFilter!=='all'?'1px solid var(--accent)':'1px solid rgba(0,0,0,.08)',display:'flex',alignItems:'center',gap:4}}>
@@ -1364,7 +1930,6 @@ const Library=({items,viewingItem,setViewingItem,onUpdate,onDelete,folderFilter,
         <select value={sort} onChange={e=>setSort(e.target.value)}
           style={{padding:'4px 10px',border:'1px solid rgba(0,0,0,.08)',borderRadius:20,background:'var(--surface)',fontSize:11.5,color:'var(--text-2)',outline:'none',cursor:'pointer',fontWeight:500}}>
           <option value="date">{'\u6700\u65b0\u66f4\u65b0'}</option>
-          <option value="rating">{'\u8bc4\u5206\u6700\u9ad8'}</option>
           <option value="uses">{'\u4f7f\u7528\u6700\u591a'}</option>
         </select>
         <div style={{flex:1}}/>
@@ -1456,7 +2021,6 @@ const Library=({items,viewingItem,setViewingItem,onUpdate,onDelete,folderFilter,
             </div>
           )}
         </div>
-        {viewingItem&&!batchMode&&<DetailPanel item={viewingItem} onClose={()=>setViewingItem(null)} onUpdate={onUpdate} onDelete={onDelete} allFolders={allFolders}/>}
       </div>
     </div>
   );
@@ -1848,9 +2412,9 @@ const App=()=>{
     const initialized=localStorage.getItem('promptos_initialized');
     if(!initialized){
       localStorage.setItem('promptos_initialized','1');
-      return MOCK_ITEMS;
+      return migrateAll(MOCK_ITEMS);
     }
-    return getUserItems();
+    return migrateAll(getUserItems());
   });
   const [trash,setTrash]=useState(()=>{try{const s=localStorage.getItem('promptos_trash');return s?JSON.parse(s):[];}catch{return[]}});
   const [q,setQ]=useState('');
@@ -1903,11 +2467,26 @@ const App=()=>{
   },[items,q,folderFilter]);
 
   const handleSave=(newItem)=>{
-    setItems(prev=>[newItem,...prev]);
+    const item = migrateItem({...newItem, _schema: SCHEMA_VERSION});
+    if(!item.versions || item.versions.length===0){
+      item.versions=[{v:1,prompt:item.prompt,neg:item.neg||'',params:item.params||{},date:item.date,note:'\u521d\u59cb\u7248\u672c'}];
+    }
+    setItems(prev=>[item,...prev]);
   };
 
   const handleUpdate=(updatedItem)=>{
-    setItems(prev=>prev.map(i=>i.id===updatedItem.id?updatedItem:i));
+    setItems(prev=>prev.map(i=>{
+      if(i.id!==updatedItem.id) return i;
+      const merged={...updatedItem,_schema:SCHEMA_VERSION};
+      // Auto-append version if prompt changed
+      if(i.prompt && updatedItem.prompt && i.prompt!==updatedItem.prompt){
+        const vers=[...(merged.versions||[])];
+        const nextV=vers.length>0?Math.max(...vers.map(v=>v.v))+1:1;
+        vers.push({v:nextV,prompt:updatedItem.prompt,neg:updatedItem.neg||'',params:updatedItem.params||{},date:new Date().toISOString().slice(0,10),note:'\u7f16\u8f91\u66f4\u65b0'});
+        merged.versions=vers;
+      }
+      return merged;
+    }));
     setViewingItem(updatedItem);
   };
 
@@ -2044,6 +2623,7 @@ const App=()=>{
       </div>
       {showUpload&&<AnalysisOverlay onClose={()=>setShowUpload(false)} onSave={handleSave} apiConfig={apiConfig} onOpenSettings={()=>setShowSettings(true)}/>}
       {showSettings&&<SettingsModal onClose={()=>setShowSettings(false)} apiConfig={apiConfig} setApiConfig={handleApiConfigChange}/>}
+      {viewingItem&&!batchMode&&<DetailPanel item={viewingItem} onClose={()=>setViewingItem(null)} onUpdate={handleUpdate} onDelete={handleDelete} allFolders={dynamicFolders}/>}
       {folderDialog&&<FolderDialog mode={folderDialog.mode} editFolder={folderDialog.folder} existingNames={dynamicFolders.map(f=>f.name)}
         onSave={(data)=>{if(folderDialog.mode==='create')handleCreateFolder(data);else handleRenameFolder(folderDialog.folder.name,data);setFolderDialog(null)}}
         onClose={()=>setFolderDialog(null)}/>}
