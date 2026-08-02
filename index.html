@@ -197,22 +197,25 @@ const ANALYSIS_SYSTEM_PROMPT=`你是一个专业的 AI 图片生成 Prompt 工�
     "env": "环境场景描述",
     "style": "视觉艺术风格",
     "color": "色彩特征和色调",
-    "comp": "构图方式",
-    "lens": "推测的摄影镜头或视角（非摄影类填"—"）",
+    "comp": "构图方式（包含画面布局和视觉重心）",
+    "angle": "观察视角——必须从以下选项中精确选择：鸟瞰俯视（约60-90°从上往下）、高角度俯视（约30-60°）、轻微俯视（约10-30°）、平视（0°水平视角）、轻微仰视（约10-30°从下往上）、低角度仰视（约30-60°）、极端仰视（约60-90°）。所有图片类型都必须填写，包括插画、3D渲染等非摄影类",
+    "lens": "镜头类型（广角/标准50mm/长焦/微距等，无法判断填"—"）",
     "light": "光影效果特征",
     "models": ["推荐AI平台1", "推荐AI平台2"],
     "suggestedParams": ["建议画幅参数", "建议画质参数", "建议风格参数"]
   },
-  "prompt": "完整的中文正向提示词（80-150字，自然流畅的描述，包含主体、环境、风格、光影、构图、画质等要素，适合即梦和ChatGPT直接使用）",
+  "prompt": "完整的中文正向提示词（100-180字，自然流畅的描述，必须包含精确的镜头视角描述如'俯视视角'或'平视视角'或'低角度仰拍'等，包含主体、环境、风格、光影、构图、画质等要素，适合即梦和ChatGPT直接使用）",
   "negPrompt": "中文负向提示词（列出应该避免的元素，用顿号分隔）",
   "tags": ["标签1", "标签2", "标签3", "标签4", "标签5"]
 }
 
 分析要求：
 1. prompt 字段必须是完整的自然语言中文描述，不要包含英文单词或技术参数符号
-2. tags 必须是 4-5 个精准的中文分类标签，适合用于作品管理和搜索
-3. models 从"即梦 Dreamina"、"ChatGPT"、"通义万相"中选择最合适的 1-2 个
-4. suggestedParams 包含画幅（如16:9宽幅）、画质（如超高清）、风格三个建议`;
+2. prompt 中必须明确写出镜头视角（如"俯视视角"、"鸟瞰角度"、"平视角度"、"低角度仰拍"等），这是复现图片的关键
+3. lens 字段要精确判断俯视/仰视/平视的角度程度，这是最容易影响复现效果的参数
+4. tags 必须是 4-5 个精准的中文分类标签，适合用于作品管理和搜索
+5. models 从"即梦 Dreamina"、"ChatGPT"、"通义万相"中选择最合适的 1-2 个
+6. suggestedParams 包含画幅（如16:9宽幅）、画质（如超高清）、风格三个建议`;
 
 /* ─── Demo Mode: Built-in API Key ─── */
 const DEMO_API_CONFIG = {
@@ -256,7 +259,8 @@ const decomposePrompt = async (promptText, base64Image, apiConfig, signal) => {
     "style": "视觉艺术风格",
     "color": "色彩特征和色调",
     "comp": "构图方式",
-    "lens": "摄影镜头或视角（非摄影类填"—"）",
+    "angle": "观察视角（鸟瞰俯视/高角度俯视/轻微俯视/平视/轻微仰视/低角度仰视/极端仰视，所有类型图片都必须填写）",
+    "lens": "镜头类型（广角/标准/长焦/微距等，无法判断填"—"）",
     "light": "光影效果",
     "models": ["推荐AI平台1"],
     "suggestedParams": ["建议画幅", "建议画质", "建议风格"]
@@ -1014,6 +1018,7 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
                             {l:'风格',v:decomposeResult.analysis.style,e:'🎨'},
                             {l:'色彩',v:decomposeResult.analysis.color,e:'🌈'},
                             {l:'构图',v:decomposeResult.analysis.comp,e:'📷'},
+                            {l:'视角',v:decomposeResult.analysis.angle,e:'👁️'},
                             {l:'镜头',v:decomposeResult.analysis.lens,e:'🔍'},
                             {l:'光影',v:decomposeResult.analysis.light,e:'☀️'},
                           ].map((x,i)=>(
@@ -1439,6 +1444,7 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
       '风格':a.style||'',
       '色彩':a.color||'',
       '构图':a.comp||'',
+      '视角':a.angle||'',
       '镜头':a.lens||'',
       '光影':a.light||'',
     });
@@ -1491,6 +1497,7 @@ const DetailPanel=({item,onClose,onUpdate,onDelete,allFolders})=>{
     {l:'\u98ce\u683c',v:a.style,e:'\ud83c\udfa8',c:'var(--violet)'},
     {l:'\u8272\u5f69',v:a.color,e:'\ud83c\udf08',c:'var(--violet)'},
     {l:'\u6784\u56fe',v:a.comp,e:'\ud83d\udcf7',c:'var(--violet)'},
+    {l:'\u89c6\u89d2',v:a.angle,e:'\ud83d\udc41\ufe0f',c:'var(--rose)'},
     {l:'\u955c\u5934',v:a.lens,e:'\ud83d\udd0d',c:'var(--violet)'},
     {l:'\u5149\u5f71',v:a.light,e:'\u2600\ufe0f',c:'var(--violet)'},
   ].filter(c=>c.v&&c.v!=='\u2014'&&c.v!=='-'):[];
