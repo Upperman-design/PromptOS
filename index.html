@@ -2424,13 +2424,15 @@ const FolderDialog=({mode,editFolder,existingNames,onSave,onClose})=>{
 const App=()=>{
   const [page,setPage]=useState('dashboard');
   const [items,setItems]=useState(()=>{
-    const storedVer=parseInt(localStorage.getItem('promptos_schema_ver'))||0;
-    if(storedVer<SCHEMA_VERSION){
-      // Schema upgraded — clear all cached data for a clean start
-      Object.keys(localStorage).filter(k=>k.startsWith('promptos_')).forEach(k=>localStorage.removeItem(k));
-      localStorage.setItem('promptos_initialized','1');
-      localStorage.setItem('promptos_schema_ver',String(SCHEMA_VERSION));
-      return migrateAll(MOCK_ITEMS);
+    const isOnline=location.hostname.includes('github.io');
+    if(isOnline){
+      const storedVer=parseInt(localStorage.getItem('promptos_schema_ver'))||0;
+      if(storedVer<SCHEMA_VERSION){
+        Object.keys(localStorage).filter(k=>k.startsWith('promptos_')).forEach(k=>localStorage.removeItem(k));
+        localStorage.setItem('promptos_initialized','1');
+        localStorage.setItem('promptos_schema_ver',String(SCHEMA_VERSION));
+        return migrateAll(MOCK_ITEMS);
+      }
     }
     const initialized=localStorage.getItem('promptos_initialized');
     if(!initialized){
