@@ -411,7 +411,11 @@ const migrateItem = (item) => {
   }
   // Ensure analysis/disassembly exists
   if (!item.analysis) {
-    item.analysis = {subject:'\u2014',character:'\u2014',env:'\u2014',style:'\u2014',color:'\u2014',comp:'\u2014',lens:'\u2014',light:'\u2014',models:[],suggestedParams:[]};
+    item.analysis = {subject:'\u2014',character:'\u2014',env:'\u2014',style:'\u2014',color:'\u2014',comp:'\u2014',angle:'\u2014',lens:'\u2014',light:'\u2014',models:[],suggestedParams:[]};
+  }
+  // Migrate: ensure angle field exists (added in v2.1)
+  if (item.analysis.angle === undefined) {
+    item.analysis.angle = '\u2014';
   }
   // Ensure schema version tag
   item._schema = SCHEMA_VERSION;
@@ -890,7 +894,7 @@ const AnalysisOverlay=({onClose,onSave,apiConfig,onOpenSettings})=>{
 
   const analysisLabels=aiResult?[
     {cat:'内容层',items:[{l:'主体',v:aiResult.analysis.subject},{l:'人物',v:aiResult.analysis.character},{l:'环境',v:aiResult.analysis.env}]},
-    {cat:'视觉层',items:[{l:'风格',v:aiResult.analysis.style},{l:'色彩',v:aiResult.analysis.color},{l:'构图',v:aiResult.analysis.comp},{l:'镜头',v:aiResult.analysis.lens},{l:'光影',v:aiResult.analysis.light}]},
+    {cat:'视觉层',items:[{l:'风格',v:aiResult.analysis.style},{l:'色彩',v:aiResult.analysis.color},{l:'构图',v:aiResult.analysis.comp},{l:'视角',v:aiResult.analysis.angle},{l:'镜头',v:aiResult.analysis.lens},{l:'光影',v:aiResult.analysis.light}]},
     {cat:'技术层',items:[{l:'推荐模型',v:(aiResult.analysis.models||[]).join(' / ')},{l:'建议参数',v:(aiResult.analysis.suggestedParams||[]).join(', ')}]},
   ]:[];
 
